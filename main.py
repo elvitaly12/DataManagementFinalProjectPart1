@@ -1,16 +1,24 @@
-# This is a sample Python script.
-
-# Press Shift+F10 to execute it or replace it with your code.
-# Press Double Shift to search everywhere for classes, files, tool windows, actions, and settings.
-
-
-def print_hi(name):
-    # Use a breakpoint in the code line below to debug your script.
-    print(f'Hi, {name}')  # Press Ctrl+F8 to toggle the breakpoint.
+from server_logic import app
+from bot_logic import runbot
+import threading
 
 
-# Press the green button in the gutter to run the script.
-if __name__ == '__main__':
-    print_hi('PyCharm')
 
-# See PyCharm help at https://www.jetbrains.com/help/pycharm/
+class FlaskThread(threading.Thread):
+    def run(self) -> None:
+        app.run()
+
+
+class TelegramThread(threading.Thread):
+    def run(self) -> None:
+        runbot()
+
+
+if __name__ == "__main__":
+    flask_thread = FlaskThread()
+    flask_thread.start()
+    bot_thread = TelegramThread()
+    bot_thread.start()
+    # runbot()
+
+    # main()
