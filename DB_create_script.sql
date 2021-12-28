@@ -2,10 +2,7 @@ CREATE DATABASE beautipoll;
 
 CREATE TABLE Users (
     username VARCHAR (20) PRIMARY KEY,
-    active BIT NOT NULL,
---    visited_at DATETIME,
---    store_id ,
---    FOREIGN KEY (store_id) REFERENCES sales.stores (store_id)
+    active BOOLEAN NOT NULL,
 );
 
 CREATE TABLE Admins (
@@ -46,3 +43,8 @@ CREATE VIEW ActiveUsers (
     username VARCHAR (20) PRIMARY KEY,
     FOREIGN KEY (username) REFERENCES Users (username)
 );
+
+CREATE VIEW ActiveUsers AS
+SELECT username
+FROM Users
+WHERE active=TRUE;
