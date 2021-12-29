@@ -76,7 +76,7 @@ def unregisterUser(username):
     conn.close()
     return ReturnValue.OK
 
-def getUser(username):
+def getChat_idByUsername(username):
     conn = None
     rows_effected = None
     res = None
@@ -96,13 +96,13 @@ def getUser(username):
         else:
             return res[0]['chat_id']
 
-def getUserByChatID(chat_id):
+def getUsernameByChatID(chat_id):
     conn = None
     rows_effected = None
     res = None
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("SELECT * FROM Users "
+        query = sql.SQL("SELECT username FROM Users "
                         "WHERE chat_id={chat_id_input}").format(chat_id_input=sql.Literal(chat_id))
         rows_effected, res = conn.execute(query)
         conn.commit()
@@ -112,7 +112,7 @@ def getUserByChatID(chat_id):
     finally:
         conn.close()
         if rows_effected is None or rows_effected <= 0:
-            return 0
+            return -1
         else:
-            return 1
+            return res[0]['username']
 
