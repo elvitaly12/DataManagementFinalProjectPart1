@@ -27,11 +27,14 @@ def createDB() -> None:
         # will happen any way after try termination or exception handling
         conn.close()
 
-def registerUser(username):
+def registerUser(username, chat_id):
     conn = None
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("INSERT INTO Users(username, active) VALUES({username_input}, {active_input})").format(username_input=sql.Literal(username),                                                                   active_input=sql.Literal(True))
+        query = sql.SQL("INSERT INTO Users(username, chat_id, active) VALUES({username_input}, {chat_id_input}, {active_input})").format(
+            username_input=sql.Literal(username),
+            chat_id_input=sql.Literal(chat_id),
+            active_input=sql.Literal(True))
         rows_effected, _ = conn.execute(query)
         conn.commit()
     except DatabaseException.NOT_NULL_VIOLATION:
