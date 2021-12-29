@@ -95,3 +95,24 @@ def getUser(username):
             return -1
         else:
             return res[0]['chat_id']
+
+def getUserByChatID(chat_id):
+    conn = None
+    rows_effected = None
+    res = None
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT * FROM Users "
+                        "WHERE chat_id={chat_id_input}").format(chat_id_input=sql.Literal(chat_id))
+        rows_effected, res = conn.execute(query)
+        conn.commit()
+    except Exception:
+        conn.close()
+        return ReturnValue.ERROR
+    finally:
+        conn.close()
+        if rows_effected is None or rows_effected <= 0:
+            return 0
+        else:
+            return 1
+
