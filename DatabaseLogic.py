@@ -112,7 +112,7 @@ def getUsernameByChatID(chat_id):
     finally:
         conn.close()
         if rows_effected is None or rows_effected <= 0:
-            return -1
+            return None
         else:
             return res[0]['username']
 
