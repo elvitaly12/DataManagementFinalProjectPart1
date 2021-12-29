@@ -1,5 +1,7 @@
 
 * support database 'register' and 'remove' commands
+* when sending a follow up poll, check if a user is active before sending him a poll.
+* use logo website
 
 done:
 * open git repository

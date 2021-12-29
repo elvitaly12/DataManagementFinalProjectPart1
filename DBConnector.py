@@ -1,10 +1,54 @@
 import psycopg2
 from psycopg2 import errors, sql
 from configparser import ConfigParser
-from Utility.Exceptions import DatabaseException
 import os
 from typing import Union
 
+
+from enum import Enum
+# return values for your functions
+class ReturnValue(Enum):
+    OK = 0
+    NOT_EXISTS = 1
+    ALREADY_EXISTS = 2
+    ERROR = 3
+    BAD_PARAMS = 4
+
+class _Exceptions(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+
+class _Exceptions(Exception):
+    def __init__(self, message):
+        self.message = message
+
+    def __str__(self):
+        return self.message
+
+
+# exceptions classes, you can print the exception using print(exception)
+class DatabaseException(_Exceptions):
+    class ConnectionInvalid(_Exceptions):
+        pass
+
+    class NOT_NULL_VIOLATION(_Exceptions):
+        pass
+
+    class FOREIGN_KEY_VIOLATION(_Exceptions):
+        pass
+
+    class UNIQUE_VIOLATION(_Exceptions):
+        pass
+
+    class CHECK_VIOLATION(_Exceptions):
+        pass
+
+    class database_ini_ERROR(_Exceptions):
+        pass
 
 class ResultSetDict(dict):
     def __getitem__(self, item):

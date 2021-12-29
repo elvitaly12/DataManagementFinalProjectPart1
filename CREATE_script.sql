@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS public."Users"
 (
     username character varying[] COLLATE pg_catalog."default" NOT NULL,
     active boolean NOT NULL,
+    chat_id integer,
     CONSTRAINT "Users_pkey" PRIMARY KEY (username)
 )
 

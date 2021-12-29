@@ -1,53 +1,7 @@
-import Utility.DBConnector as Connector
-from Utility.Exceptions import DatabaseException
-from Utility.DBConnector import ResultSet
+import DBConnector as Connector
+from DBConnector import DatabaseException
+from DBConnector import ReturnValue
 from psycopg2 import sql
-
-
-from enum import Enum
-# return values for your functions
-class ReturnValue(Enum):
-    OK = 0
-    NOT_EXISTS = 1
-    ALREADY_EXISTS = 2
-    ERROR = 3
-    BAD_PARAMS = 4
-
-class _Exceptions(Exception):
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
-
-class _Exceptions(Exception):
-    def __init__(self, message):
-        self.message = message
-
-    def __str__(self):
-        return self.message
-
-
-# exceptions classes, you can print the exception using print(exception)
-class DatabaseException(_Exceptions):
-    class ConnectionInvalid(_Exceptions):
-        pass
-
-    class NOT_NULL_VIOLATION(_Exceptions):
-        pass
-
-    class FOREIGN_KEY_VIOLATION(_Exceptions):
-        pass
-
-    class UNIQUE_VIOLATION(_Exceptions):
-        pass
-
-    class CHECK_VIOLATION(_Exceptions):
-        pass
-
-    class database_ini_ERROR(_Exceptions):
-        pass
 
 
 def createDB() -> None:
@@ -77,22 +31,64 @@ def registerUser(username):
     conn = None
     try:
         conn = Connector.DBConnector()
-        query = sql.SQL("INSERT INTO Users(id, name) VALUES({id}, {username})").format(id=sql.Literal(ID),
-                                                                                       username=sql.Literal(name))
+        query = sql.SQL("INSERT INTO Users(username, active) VALUES({username_input}, {active_input})").format(username_input=sql.Literal(username),                                                                   active_input=sql.Literal(True))
         rows_effected, _ = conn.execute(query)
         conn.commit()
-    except DatabaseException.ConnectionInvalid as e:
-        print(e)
-    except DatabaseException.NOT_NULL_VIOLATION as e:
-        print(e)
-    except DatabaseException.CHECK_VIOLATION as e:
-        print(e)
-    except DatabaseException.UNIQUE_VIOLATION as e:
-        print(e)
-    except DatabaseException.FOREIGN_KEY_VIOLATION as e:
-        print(e)
-    except Exception as e:
-        print(e)
+    except DatabaseException.NOT_NULL_VIOLATION:
+        conn.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.CHECK_VIOLATION:
+        conn.close()
+        return ReturnValue.BAD_PARAMS
+    except DatabaseException.UNIQUE_VIOLATION:
+        conn.close()
+        return ReturnValue.ALREADY_EXISTS
+    except DatabaseException.database_ini_ERROR:
+        conn.close()
+        return ReturnValue.ERROR
+    except DatabaseException.ConnectionInvalid:
+        conn.close()
+        return ReturnValue.ERROR
+    except Exception:
+        conn.close()
+        return ReturnValue.ERROR
     finally:
         conn.close()
         return ReturnValue.OK
+
+def unregisterUser(username):
+    conn = None
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("UPDATE Users "
+                        "SET active = False "
+                        "WHERE username={username_input}").format(username_input=sql.Literal(username))
+        rows_effected, _ = conn.execute(query)
+        # conn.commit()
+    except Exception as e:
+        conn.rollback()
+        conn.close()
+        return ReturnValue.ERROR
+
+    conn.close()
+    return ReturnValue.OK
+
+def getUser(username):
+    conn = None
+    rows_effected = None
+    res = None
+    try:
+        conn = Connector.DBConnector()
+        query = sql.SQL("SELECT chat_id FROM Users "
+                        "WHERE username={username_input}").format(username_input=sql.Literal(username))
+        rows_effected, res = conn.execute(query)
+        conn.commit()
+    except Exception:
+        conn.close()
+        return ReturnValue.ERROR
+    finally:
+        conn.close()
+        if rows_effected is None or rows_effected <= 0:
+            return -1
+        else:
+            return res[0]['chat_id']
