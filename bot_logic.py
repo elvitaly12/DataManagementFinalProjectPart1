@@ -29,7 +29,7 @@ def register_command(update: Update, context: CallbackContext):
     user_to_register = update['message']['text'].split(' ')[1]
     PARAMS={'username' : user_to_register}
     requests.get(url=' http://127.0.0.1:5000/register', params=PARAMS) #MAYBE NEED TO SWITCH IP
-    print("ADD SOME LOGIC WITH DB")
+    print(update)
 
 def runbot() -> None:
     """Start the bot."""
