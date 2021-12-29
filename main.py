@@ -1,6 +1,6 @@
 from DatabaseLogic import createDB
 from server_logic import app
-# from bot_logic import runbot
+from bot_logic import runbot
 import threading
 
 
@@ -8,7 +8,7 @@ import threading
 class FlaskThread(threading.Thread):
     def run(self) -> None:
         app.run()
-        createDB()
+        # createDB()
 
 
 class TelegramThread(threading.Thread):
@@ -22,11 +22,11 @@ class TelegramThread(threading.Thread):
 
 
 if __name__ == "__main__":
-    createDB()
-    # flask_thread = FlaskThread()
-    # flask_thread.start()
-    # bot_thread = TelegramThread()
-    # bot_thread.start()
+    # createDB()
+    flask_thread = FlaskThread()
+    flask_thread.start()
+    bot_thread = TelegramThread()
+    bot_thread.start()
     # db_thread = DBThread()
     # db_thread.start()
     # runbot()
