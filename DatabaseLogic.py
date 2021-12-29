@@ -76,6 +76,8 @@ def unregisterUser(username):
     conn.close()
     return ReturnValue.OK
 
+
+#  given usernmae returns chat_id if exists or -1 if doesnt ,
 def getChat_idByUsername(username):
     conn = None
     rows_effected = None

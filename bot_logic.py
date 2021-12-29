@@ -15,10 +15,10 @@ def help_command(update: Update, context: CallbackContext):
 
 
 def remove_command(update: Update, context: CallbackContext):
-    # print(update['message']['text'])
-    user_to_remove= update['message']['text'].split(' ')[1]
-    print("ADD SOME LOGIC WITH DB")
-    # print(user_to_remove)
+    user_to_uregister = update['message']['text'].split(' ')[1]
+    chat_id = update['message']['chat']['id']
+    PARAMS = {'UserName': user_to_uregister, 'ChatId': chat_id}
+    requests.get(url=' http://127.0.0.1:5000/unregister', params=PARAMS)  # MAYBE NEED TO SWITCH IP
 
 
     # for key in update:
@@ -27,9 +27,10 @@ def remove_command(update: Update, context: CallbackContext):
 
 def register_command(update: Update, context: CallbackContext):
     user_to_register = update['message']['text'].split(' ')[1]
-    PARAMS={'username' : user_to_register}
+    chat_id = update['message']['chat']['id']
+    PARAMS={'UserName' : user_to_register,'ChatId':chat_id}
     requests.get(url=' http://127.0.0.1:5000/register', params=PARAMS) #MAYBE NEED TO SWITCH IP
-    print(update)
+
 
 def runbot() -> None:
     """Start the bot."""
