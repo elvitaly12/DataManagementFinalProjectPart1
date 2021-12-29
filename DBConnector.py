@@ -118,6 +118,7 @@ class DBConnector:
             self.connection.autocommit = False
             self.cursor = self.connection.cursor()
         except Exception as e:
+            print(e)
             self.connection = None
             self.cursor = None
             raise DatabaseException.ConnectionInvalid("Could not connect to database")
@@ -178,7 +179,8 @@ class DBConnector:
 
     # grant credentials
     @staticmethod
-    def __config(filename=os.path.join(os.path.join(os.getcwd(), "Utility"), 'database.ini'),
+    # def __config(filename=os.path.join(os.path.join(os.getcwd(), "Utility"), 'database.ini'),
+    def __config(filename=os.path.join(os.getcwd(), 'database.ini'),
                  section='postgresql'):
         # create a parser
         parser = ConfigParser()
@@ -194,7 +196,8 @@ class DBConnector:
         else:
             # file not found
             db = DBConnector.__config(
-                filename=os.path.join(os.path.join(os.path.dirname(os.getcwd()), 'Utility'), 'database.ini'))
+            filename=os.path.join(os.getcwd(), 'database.ini'))
+            # filename=os.path.join(os.path.join(os.path.dirname(os.getcwd()), 'Utility'), 'database.ini'))
             if db is None:
-                raise DatabaseException.database_ini_ERROR("Please modify database.ini file under Utility")
+                raise DatabaseException.database_ini_ERROR("Please modify database.ini file")
         return db

@@ -9,7 +9,7 @@ def createDB() -> None:
     try:
         conn = Connector.DBConnector()
         script = open('CREATE_script.sql', 'r')
-        conn.execute(script)
+        conn.execute(script.read())
         conn.commit()
     except DatabaseException.ConnectionInvalid as e:
         print(e)
