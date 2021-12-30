@@ -1,10 +1,10 @@
-from flask import Flask
 from sqlalchemy.dialects.postgresql import psycopg2
-
 import config
 from DatabaseLogic import createDB
 from bot_logic import runbot
 from server_logic import app
+
+from passwordfie import password
 
 import threading
 import sqlalchemy
@@ -14,7 +14,6 @@ from sqlalchemy import Column, Integer, String, Date
 Base = declarative_base()
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
-
 class FlaskThread(threading.Thread):
     def run(self) -> None:
         app.run()
@@ -48,10 +47,13 @@ if __name__ == "__main__":
     # engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
     # Base.metadata.create_all(engine)
     app = Flask(__name__)
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:123456@localhost:5433/postgres'
+
+    # DATABASE_URI = 'postgres+psycopg2://postgresql:' + password + '@localhost:5433/books'
+
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:5433/books'
     db = SQLAlchemy(app)
     # db = SQLAlchemy(app)
-    # db.create_all()
+    db.create_all()
 
 
 
