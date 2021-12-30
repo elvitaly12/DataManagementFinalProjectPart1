@@ -19,6 +19,7 @@ def remove_command(update: Update, context: CallbackContext):
     chat_id = update['message']['chat']['id']
     PARAMS = {'UserName': user_to_uregister, 'ChatId': chat_id}
     requests.get(url=' http://127.0.0.1:5000/unregister', params=PARAMS)  # MAYBE NEED TO SWITCH IP
+    print("are we inside bot??")
 
 
     # for key in update:
@@ -51,7 +52,7 @@ def runbot() -> None:
     # # on non command i.e message - echo the message on Telegram
     # dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
 
-    dispatcher.add_handler(CommandHandler("remove",remove_command))
+    dispatcher.add_handler(CommandHandler("unregister",remove_command))
 
     dispatcher.add_handler(CommandHandler("register", register_command))
 
