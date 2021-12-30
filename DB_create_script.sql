@@ -39,12 +39,12 @@ CREATE TABLE PollsAnswers (
     FOREIGN KEY (answer_id) REFERENCES Answers (answer_id)
 );
 
-CREATE VIEW ActiveUsers (
-    username VARCHAR (20) PRIMARY KEY,
-    FOREIGN KEY (username) REFERENCES Users (username)
-);
-
-CREATE VIEW ActiveUsers AS
-SELECT username
-FROM Users
-WHERE active=TRUE;
+----CREATE VIEW ActiveUsers (
+----    username VARCHAR (20) PRIMARY KEY,
+----    FOREIGN KEY (username) REFERENCES Users (username)
+----);
+--
+--CREATE VIEW ActiveUsers AS
+--SELECT username
+--FROM Users
+--WHERE active=TRUE;
