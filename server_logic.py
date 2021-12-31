@@ -28,37 +28,46 @@ class Users(db.Model):
         return "<Users(username='{}', chat_id={}, active={})>" \
             .format(self.username, self.chat_id, self.active)
 
-    def IsUserRegisteredByUsername(user_name_inserted, db):
-        exists = db.session.query(Users).filter_by(username=user_name_inserted).first() is not None
+    def IsUserRegisteredByUsername(user_name_inserted, db_input):
+        exists = db_input.session.query(Users).filter_by(username=user_name_inserted).first() is not None
         if exists:
             return True
         else:
             return False
 
-    def IsUserRegisteredByChatID(chat_id_inserted, db):
-        exists = db.session.query(Users).filter_by(chat_id=chat_id_inserted).first() is not None
-        if exists:
-            return True
-        else:
-            return False
+    def IsUserActiveByChatID(chat_id_inserted, db_input):
+        return db_input.session.query(Users).filter_by(chat_id=chat_id_inserted).first().active
 
-    def RegisterUser(username, chat_id, active, db):
-        newuser = Users(username, chat_id, active)
-        db.session.add(newuser)
-        db.session.commit()
+    def IsUserActiveByUsername(username_inserted, db_input):
+        return db_input.session.query(Users).filter_by(username=username_inserted).first().active
 
-    def UnregisterUser(user_name_inserted, chat_id, db):
-        name = db.session.query(Users).filter_by(chat_id=chat_id).first().username
+    def IsUserRegisteredByChatID(chat_id_inserted, db_input):
+        return db_input.session.query(Users).filter_by(chat_id=chat_id_inserted).first() is not None
+
+    def IsUserRegisteredAndActiveByChatID(chat_id_inserted, db_input):
+        return db_input.session.query(Users).filter_by(chat_id=chat_id_inserted, active=True).first() is not None
+
+    def RegisterUser(username, chat_id, active, db_input):
+        new_user = Users(username, chat_id, active)
+        db_input.session.add(new_user)
+        db_input.session.commit()
+
+    def UnregisterUser(user_name_inserted, chat_id, db_input):
+        name = db_input.session.query(Users).filter_by(chat_id=chat_id, active=True).first().username
         print("UnregisterUser name:", name)
         if name is None:
-            return Response('Internal Server Error', status=500)
+            return Response('You are not registered.', status=403)
         elif name != user_name_inserted:
             return Response("You can't unregister other users.", status=403)
         else:
-            db.session.query(Users) \
+            active = Users.IsUserActiveByUsername(user_name_inserted, db_input)
+            if not active:
+                return Response("This is username was already unregistered.", status=403)
+
+            db_input.session.query(Users) \
                 .filter(Users.username == user_name_inserted) \
                 .update({Users.active: False})
-            db.session.commit()
+            db_input.session.commit()
             return Response(user_name_inserted + ' unregistered.', status=200)
 
 
@@ -141,20 +150,36 @@ def page_not_found(e):
 @app.errorhandler(500)
 def internal_error(e):
     print(e)
-    return "500 Error"
+    return "500 Internal Server Error"
 
 
 @app.route('/register', methods=['GET', 'POST'])
 def register_HTTP_request():
     user_name_inserted = ""
-
     if request.method == 'GET':
         user_name_inserted = request.args['UserName']
         chat_id_of_typer = request.args['ChatId']
         # context = request.args['context']
-        if Users.IsUserRegisteredByChatID(chat_id_of_typer, db):
-            print("chat id", chat_id_of_typer, "already registered (403)")
+        if Users.IsUserRegisteredAndActiveByChatID(chat_id_of_typer, db):
+            print("chat id", chat_id_of_typer, "already registered and active (403)")
             return Response("You're already registered from this account.", status=403)
+        elif Users.IsUserRegisteredByChatID(chat_id_of_typer, db):
+            name = db.session.query(Users).filter_by(chat_id=chat_id_of_typer).first().username
+            if user_name_inserted == name: # change to active=True:
+                db.session.query(Users) \
+                    .filter(Users.username == user_name_inserted) \
+                    .update({Users.active: True})
+                db.session.commit()
+                print("chat id", chat_id_of_typer, "already registered with this user name so we change it to active.")
+                return Response("You have successfully reactivated your old username! Welcome back to Beautipoll :)", status=200)
+            else: #insert new username for the same chat id
+                try:
+                    Users.RegisterUser(user_name_inserted, chat_id_of_typer, True, db)
+                    Response("You have successfully registered with a new username! Welcome back to Beautipoll :)",
+                             status=200)
+                except Exception as e:
+                    print("register_HTTP_request error:", e)
+                    return Response('Internal Server Error1', status=500)
         # context.bot.send_message(chat_id=chat_id_of_typer, text="You're already registered.")
         elif Users.IsUserRegisteredByUsername(user_name_inserted, db):
             print("username ", user_name_inserted, " already exists(403)")
@@ -167,11 +192,12 @@ def register_HTTP_request():
                 Users.RegisterUser(user_name_inserted, chat_id_of_typer, True, db)
             except Exception as e:
                 print("register_HTTP_request error:", e)
-                return Response('Internal Server Error', status=500)
+                return Response('Internal Server Error2', status=500)
+        return Response("You have successfully registered! Welcome to Beautipoll :)", status=200)
+
     # request.args['context'].bot.send_message(
     #     chat_id=chat_id_of_typer,
     #     text="You have successfully registered! Welcome to Beautipoll :)")
-    return Response("You have successfully registered! Welcome to Beautipoll :)", status=200)
 
     # error = None
     # if request.method == 'GET':

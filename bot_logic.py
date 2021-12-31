@@ -5,7 +5,7 @@ import logging
 
 
 def start_command(update: Update, context: CallbackContext):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
+    context.bot.send_message(chat_id=update.effective_chat.id, text="I'm the BeautiPoll bot! please talk to me!")
 
 
 def help_command(update: Update, context: CallbackContext):
@@ -15,6 +15,10 @@ def help_command(update: Update, context: CallbackContext):
 
 def unregister_cmd(update: Update, context: CallbackContext):
     print("unregister_cmd = ", update['message']['text'])
+    len2 = len(update['message']['text'].split(' '))
+    if len2 <= 1:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide your username to unregister.")
+        return
     user_to_unregister = update['message']['text'].split(' ')[1]
     chat_id = update['message']['chat']['id']
     # params = {'UserName': user_to_unregister, 'ChatId': chat_id, 'context': context}
@@ -26,6 +30,10 @@ def unregister_cmd(update: Update, context: CallbackContext):
 
 def register_cmd(update: Update, context: CallbackContext):
     print("register_cmd =", update['message']['text'])
+    len2 = len(update['message']['text'].split(' '))
+    if len2 <= 1:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide username to register.")
+        return
     user_to_unregister = update['message']['text'].split(' ')[1]
     chat_id = update['message']['chat']['id']
     params = {'UserName': user_to_unregister, 'ChatId': chat_id}
