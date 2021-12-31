@@ -49,16 +49,17 @@ class Users(db.Model):
 
     def UnregisterUser(user_name_inserted, chat_id, db):
         name = db.session.query(Users).filter_by(chat_id=chat_id).first().username
+        print("UnregisterUser name:", name)
         if name is None:
             return Response('Internal Server Error', status=500)
         elif name != user_name_inserted:
-            return Response('Access denied, cant unregister other user', status=500)
+            return Response("You can't unregister other users.", status=403)
         else:
             db.session.query(Users) \
                 .filter(Users.username == user_name_inserted) \
                 .update({Users.active: False})
             db.session.commit()
-            return Response(user_name_inserted + ' unregistered', status=200)
+            return Response(user_name_inserted + ' unregistered.', status=200)
 
 
 class Admins(db.Model):
@@ -150,20 +151,27 @@ def register_HTTP_request():
     if request.method == 'GET':
         user_name_inserted = request.args['UserName']
         chat_id_of_typer = request.args['ChatId']
+        # context = request.args['context']
         if Users.IsUserRegisteredByChatID(chat_id_of_typer, db):
-            # context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
-            Response('chat id already exists', status=403)
-            print("chat id ", chat_id_of_typer, " already exists(403)")
+            print("chat id", chat_id_of_typer, "already registered (403)")
+            return Response("You're already registered from this account.", status=403)
+        # context.bot.send_message(chat_id=chat_id_of_typer, text="You're already registered.")
         elif Users.IsUserRegisteredByUsername(user_name_inserted, db):
-            Response('username already exists', status=403)
             print("username ", user_name_inserted, " already exists(403)")
+            return Response('This username is already registered. Please try again with another username.', status=403)
+            # request.args['context'].bot.send_message(
+            #     chat_id=chat_id_of_typer,
+            #     text="This username is already registered. Please try again with another username.")
         else:
             try:
                 Users.RegisterUser(user_name_inserted, chat_id_of_typer, True, db)
-            except Exception:
-                Response('Internal Server Error', status=500)
-                print("inside exception(register)")
-    return Response(user_name_inserted + ' registered', status=200)
+            except Exception as e:
+                print("register_HTTP_request error:", e)
+                return Response('Internal Server Error', status=500)
+    # request.args['context'].bot.send_message(
+    #     chat_id=chat_id_of_typer,
+    #     text="You have successfully registered! Welcome to Beautipoll :)")
+    return Response("You have successfully registered! Welcome to Beautipoll :)", status=200)
 
     # error = None
     # if request.method == 'GET':
@@ -176,6 +184,11 @@ def register_HTTP_request():
 
 @app.route('/unregister', methods=['GET', 'POST'])
 def unregister_HTTP_request():
+    if request.method == 'GET':
+        username_unregistered = request.args['UserName']
+        typer_chat_id = request.args['ChatId']
+        return Users.UnregisterUser(username_unregistered, typer_chat_id, db)
+
     # error = None
     # if request.method == 'GET':
     #     if request.form['username'] != 'admin' or request.form['password'] != 'admin':
@@ -184,10 +197,6 @@ def unregister_HTTP_request():
     #          return redirect(url_for('home'))
     #          return render_template('login.html', error=error)
 
-    if request.method == 'GET':
-        username_unregistered = request.args['UserName']
-        typer_chat_id = request.args['ChatId']
-        return Users.UnregisterUser(username_unregistered, typer_chat_id, db)
 
 @app.route('/')
 def hello_world():  # put application's code here

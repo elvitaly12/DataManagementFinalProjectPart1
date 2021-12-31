@@ -1,7 +1,9 @@
 
-* fix code esthetics
-* send message, current response and the correct error numbers?
-* handle case of unregister to username that doesn't exists
+* handle case of unregister to chat_id that isn't registered yet.
+* handle case of register/unregister without name.
+* write unsupported action for unsupported actions
+* check if username active before unregister. if not active, send doesn't exists
+* correct error numbers?
 
 next:
 * when sending a follow up poll, check if a user is active before sending him a poll.
@@ -14,3 +16,5 @@ done:
 * support database 'register' and 'remove' commands
 * check if works here
 * change db name to beautipoll_db
+* fix code esthetics
+* send message, current response
