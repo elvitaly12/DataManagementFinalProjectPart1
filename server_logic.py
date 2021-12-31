@@ -1,35 +1,22 @@
-from flask import Flask, redirect, url_for, abort, request, render_template
+from flask import Flask, request
 from flask import Response
-import DatabaseLogic as DB
-from werkzeug.debug import get_current_traceback
-from sqlalchemy.ext.declarative import declarative_base
 from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Date, Boolean, ForeignKey
-
-import logging
-
-from passwordfile import password
+from sqlalchemy import ForeignKey
+from config import password
+from config import port
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:5434/postgres'
+db_name = "beautipoll_db"
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:'+port+'/'+db_name
 db = SQLAlchemy(app)
-
-
-
-
-
-# def init_db():
-
+# db.create_all()
 
 
 class Users(db.Model):
     username = db.Column(db.String(30), primary_key=True)
     chat_id = db.Column(db.Integer, nullable=False)
     active = db.Column(db.Boolean, nullable=False)
-
-
-
 
     def __init__(self, username, chat_id, active):
         self.username = username
@@ -41,30 +28,27 @@ class Users(db.Model):
         return "<Users(username='{}', chat_id={}, active={})>" \
             .format(self.username, self.chat_id, self.active)
 
-    def Check_User_Registered_By_Username(user_name_inserted, db):
+    def IsUserRegisteredByUsername(user_name_inserted, db):
         exists = db.session.query(Users).filter_by(username=user_name_inserted).first() is not None
-        print(exists)
         if exists:
             return True
         else:
             return False
 
-    def Check_User_Registered_By_ChatID(chat_id_inserted, db):
+    def IsUserRegisteredByChatID(chat_id_inserted, db):
         exists = db.session.query(Users).filter_by(chat_id=chat_id_inserted).first() is not None
-        # print(exists)
         if exists:
             return True
         else:
             return False
 
-    def Register_NewUser(username, chat_id, active, db):
+    def RegisterUser(username, chat_id, active, db):
         newuser = Users(username, chat_id, active)
         db.session.add(newuser)
         db.session.commit()
 
-    def User_UnRegister(user_name_inserted, chat_id, db):
+    def UnregisterUser(user_name_inserted, chat_id, db):
         name = db.session.query(Users).filter_by(chat_id=chat_id).first().username
-        print(name)
         if name is None:
             return Response('Internal Server Error', status=500)
         elif name != user_name_inserted:
@@ -159,10 +143,28 @@ def internal_error(e):
     return "500 Error"
 
 
-
 @app.route('/register', methods=['GET', 'POST'])
-def register():
+def register_HTTP_request():
     user_name_inserted = ""
+
+    if request.method == 'GET':
+        user_name_inserted = request.args['UserName']
+        chat_id_of_typer = request.args['ChatId']
+        if Users.IsUserRegisteredByChatID(chat_id_of_typer, db):
+            # context.bot.send_message(chat_id=update.effective_chat.id, text="I'm a bot, please talk to me!")
+            Response('chat id already exists', status=403)
+            print("chat id ", chat_id_of_typer, " already exists(403)")
+        elif Users.IsUserRegisteredByUsername(user_name_inserted, db):
+            Response('username already exists', status=403)
+            print("username ", user_name_inserted, " already exists(403)")
+        else:
+            try:
+                Users.RegisterUser(user_name_inserted, chat_id_of_typer, True, db)
+            except Exception:
+                Response('Internal Server Error', status=500)
+                print("inside exception(register)")
+    return Response(user_name_inserted + ' registered', status=200)
+
     # error = None
     # if request.method == 'GET':
     #     if request.form['username'] != 'admin' or request.form['password'] != 'admin':
@@ -170,32 +172,10 @@ def register():
     #     else:
     #          return redirect(url_for('home'))
     #          return render_template('login.html', error=error)
-
-    if request.method == 'GET':
-       user_name_inserted = request.args['UserName']
-       chat_id_of_typer =  request.args['ChatId']
-       if Users.Check_User_Registered_By_ChatID(chat_id_of_typer,db):
-           Response('chat id already exists', status=403)
-           print("chat id ", chat_id_of_typer, " already exists(403)")
-       elif Users.Check_User_Registered_By_Username(user_name_inserted,db):
-           Response('username already exists', status=403)
-           print("username ", user_name_inserted, " already exists(403)")
-       else:
-           try:
-               Users.Register_NewUser(user_name_inserted, chat_id_of_typer,True,db)
-           except Exception:
-               Response('Internal Server Error', status=500)
-               print("inside exception(register)")
-
-
-
-    return Response(user_name_inserted +' registered', status=200)
 
 
 @app.route('/unregister', methods=['GET', 'POST'])
-def unregister():
-    print('are we herhe???')
-    user_name_uninserted=""
+def unregister_HTTP_request():
     # error = None
     # if request.method == 'GET':
     #     if request.form['username'] != 'admin' or request.form['password'] != 'admin':
@@ -205,16 +185,9 @@ def unregister():
     #          return render_template('login.html', error=error)
 
     if request.method == 'GET':
-        user_name_uninserted = request.args['UserName']
-        chat_id_of_typer = request.args['ChatId']
-        return Users.User_UnRegister(user_name_uninserted, chat_id_of_typer, db)
-
-
-
-
-
-
-
+        username_unregistered = request.args['UserName']
+        typer_chat_id = request.args['ChatId']
+        return Users.UnregisterUser(username_unregistered, typer_chat_id, db)
 
 @app.route('/')
 def hello_world():  # put application's code here

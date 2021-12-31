@@ -1,5 +1,9 @@
 
-* support database 'register' and 'remove' commands
+* fix code esthetics
+* send message, current response and the correct error numbers?
+* handle case of unregister to username that doesn't exists
+
+next:
 * when sending a follow up poll, check if a user is active before sending him a poll.
 * use logo website
 
@@ -7,3 +11,6 @@ done:
 * open git repository
 * create initial bot
 * design DB
+* support database 'register' and 'remove' commands
+* check if works here
+* change db name to beautipoll_db

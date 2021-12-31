@@ -1,6 +1,6 @@
-import DBConnector as Connector
-from DBConnector import DatabaseException
-from DBConnector import ReturnValue
+from utility import DBConnector as Connector
+from utility.DBConnector import DatabaseException
+from utility.DBConnector import ReturnValue
 from psycopg2 import sql
 
 

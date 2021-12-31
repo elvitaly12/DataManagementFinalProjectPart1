@@ -2,6 +2,7 @@ CREATE DATABASE beautipoll;
 
 CREATE TABLE Users (
     username VARCHAR (20) PRIMARY KEY,
+    chat_id INT NOT NULL,
     active BOOLEAN NOT NULL,
 );
 
@@ -16,14 +17,14 @@ CREATE TABLE Polls (
 
 CREATE TABLE Questions (
     question_id INT PRIMARY KEY,
-    poll_id INT PRIMARY KEY,
+    poll_id INT NOT NULL,
     description VARCHAR (300) NOT NULL,
     FOREIGN KEY (poll_id) REFERENCES Polls (poll_id)
 );
 
 CREATE TABLE Answers (
     answer_id INT PRIMARY KEY,
-    question_id INT PRIMARY KEY,
+    question_id INT NOT NUL,
     description VARCHAR (150) NOT NULL,
     FOREIGN KEY (question_id) REFERENCES Questions (question_id)
 );

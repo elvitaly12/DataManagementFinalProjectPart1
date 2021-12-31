@@ -1,25 +1,23 @@
-from sqlalchemy.dialects.postgresql import psycopg2
-
-import config
-
-from DatabaseLogic import createDB
 from bot_logic import runbot
 from server_logic import app
-
-from passwordfile import password
-
 import threading
-import sqlalchemy
-from sqlalchemy import create_engine, ForeignKey, false
 from sqlalchemy.ext.declarative import declarative_base
-from flask_sqlalchemy import SQLAlchemy
-from sqlalchemy import Column, Integer, String, Date, Boolean
+from server_logic import db
+from sqlalchemy_utils import database_exists, create_database
+from sqlalchemy import create_engine
 Base = declarative_base()
-from flask import Flask
 
 
 class FlaskThread(threading.Thread):
     def run(self) -> None:
+        # engine = create_engine("postgres://localhost/mydb")
+        # if not database_exists(engine.url):
+        #     create_database(engine.url)
+        if not database_exists(app.config['SQLALCHEMY_DATABASE_URI']):
+            print("db doesn't exists. creating db:")
+            create_database(app.config['SQLALCHEMY_DATABASE_URI'])
+            db.create_all()
+        else: print("db exists")
         app.run()
 
 class TelegramThread(threading.Thread):
@@ -28,10 +26,7 @@ class TelegramThread(threading.Thread):
 
 # class DBThread(threading.Thread):
 #     def run(self) -> None:
-#
 #         createDB()
-
-
 
 
 # def init_db():
