@@ -23,7 +23,7 @@ def unregister_cmd(update: Update, context: CallbackContext):
     chat_id = update['message']['chat']['id']
     # params = {'UserName': user_to_unregister, 'ChatId': chat_id, 'context': context}
     params = {'UserName': user_to_unregister, 'ChatId': chat_id}
-    response = requests.get(url='http://127.0.0.1:5000/unregister', params=params)
+    response = requests.get(url='http://127.0.0.1:5000/remove', params=params)
     context.bot.send_message(chat_id=update.effective_chat.id, text=response.text)
     # MAYBE NEED TO SWITCH IP
 
@@ -60,7 +60,7 @@ def runbot() -> None:
     # # on non command i.e message - echo the message on Telegram
     # dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, echo))
 
-    dispatcher.add_handler(CommandHandler("unregister", unregister_cmd))
+    dispatcher.add_handler(CommandHandler("remove", unregister_cmd))
 
     dispatcher.add_handler(CommandHandler("register", register_cmd))
 

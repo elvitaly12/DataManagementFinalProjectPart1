@@ -1,6 +1,7 @@
 
 next:
-* write unsupported action for unsupported actions
+* change bot name and test things
+* write "Unsupported action" for unsupported actions
 * when sending a follow up poll, check if a user is active before sending him a poll.
 * use logo website
 
@@ -17,4 +18,5 @@ done:
 * handle case of register/unregister without name.
 * check if username active before unregister. if not active, send doesn't exists
 * correct error numbers
+*change internal without digits
 
