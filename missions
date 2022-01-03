@@ -1,9 +1,27 @@
 
-next:
-* change bot name and test things
+Bot - Vitaly:
+* change bot name+hide token
+* add "/start" support according to the file
 * write "Unsupported action" for unsupported actions
-* when sending a follow up poll, check if a user is active before sending him a poll.
+* implement polls in telegram
+
+UI - Ofir:
+* design Login page
+* implement login logic
 * use logo website
+
+Next:
+* design AddAdmin page -
+  an option for admins to register admin (username+hash password)
+  + CurrentAdmins list
+* when sending a follow up poll, check if a user is active before sending him a poll.
+* design CreateNewPoll page
+
+Together:
+* change password to hash
+* find a way to work on the same DB
+
+
 
 done:
 * open git repository
