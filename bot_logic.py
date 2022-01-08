@@ -1,11 +1,138 @@
+import json
+import os
+import server_logic
 import requests
+import telegram
 from telegram import Update, ForceReply
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+# from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+from telegram import (
+    Poll,
+    ParseMode,
+    KeyboardButton,
+    KeyboardButtonPollType,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+)
+from telegram.ext import (
+    Updater,
+    CommandHandler,
+    PollAnswerHandler,
+    PollHandler,
+    MessageHandler,
+    Filters,
+    CallbackContext,
+)
 import logging
 
 
+#####    PART 2 - NEW FUNCS    #######
+from config import TELEGRAM_BOT_TOKEN
+
+
+def poll(update: Update, context: CallbackContext) -> None:
+    # print("unregister_cmd = ", update['message']['text'])
+    # print("poll update:" ,update)
+    # chat_id = update['message']['chat']['id']
+    # print(chat_id)
+    len2 = len(update['message']['text'].split(' '))
+    if len2 <= 1 or len2 > 2:
+        context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide Pollname.")
+        return
+    poll_id_ = update['message']['text'].split(' ')[1]  # be careful between telegram poll_id and web poll_id
+    description = server_logic.db.session.query(server_logic.Questions).filter_by(poll_id=poll_id_).first().description
+    # x = json.load(description)
+    jsonData = json.loads(description)
+    # print(jsonData)
+    params = []  # params[0] = question , rest answers
+    for key in jsonData:
+
+        params.append(jsonData[key])
+    poll_question = params[0]
+    answers = params[1:]
+    message = context.bot.send_poll(
+        update.effective_chat.id,
+        poll_question,
+        answers,
+        is_anonymous=False,
+        allows_multiple_answers=True,
+        type=Poll.REGULAR,
+        is_closed= False,
+        disable_notification= False,
+        api_kwargs = {}  #  use either this or poll_id
+    )
+    # print(message)  # add telegram_id here
+    telegram_id = message.poll.id
+    server_logic.db.session.query(server_logic.Polls) \
+        .filter(server_logic.Polls.poll_id == poll_id_) \
+        .update({server_logic.Polls.poll_telegram_id: telegram_id})
+    server_logic.db.session.commit()
+
+
+def receive_poll_answer(update: Update, context: CallbackContext) -> None:
+    """Summarize a users poll vote"""
+    # print("answer update:" ,update)
+    answer = update.poll_answer
+    print(answer)
+    chat_id = answer.user.id  # user who answered the poll
+    poll_telegram = answer.poll_id
+    selected_options = answer.option_ids   # indexes of the selected options
+    poll_id = server_logic.db.session.query(server_logic.Polls).filter_by(poll_telegram=poll_telegram).first().poll_id
+    description = server_logic.db.session.query(server_logic.Questions).filter_by(poll_id=poll_id).first().description
+    jsonData = json.loads(description)
+    params = []  # params[0] = question , rest answers
+    for key in jsonData:
+        params.append(jsonData[key])
+    poll_question = params[0]
+    answers = params[1:]
+    user_answers = []
+    for i in selected_options:
+        user_answers.append(answers[i])
+    username =  server_logic.Users.GetUserNameByChatId(chat_id, server_logic.db)
+
+
+    # try:
+    #     questions = context.bot_data[poll_id]["questions"]
+    # # this means this poll answer update is from an old poll, we can't do our answering then
+    # except KeyError:
+    #     return
+    # selected_options = answer.option_ids
+    # answer_string = ""
+    # for question_id in selected_options:
+    #     if question_id != selected_options[-1]:
+    #         answer_string += answers[question_id] + " and "
+    #     else:
+    #         answer_string += answers[question_id]
+    # # context.bot.send_message(
+    # #     context.bot_data[poll_id]["chat_id"],
+    # #     f"{update.effective_user.mention_html()} feels {answer_string}!",
+    # #     parse_mode=ParseMode.HTML,
+    # # )
+    # print(answer_string)
+    # context.bot_data[poll_id]["answers"] += 1
+    # # Close poll after three participants voted
+    # if context.bot_data[poll_id]["answers"] == 3:
+    #     context.bot.stop_poll(
+    #         context.bot_data[poll_id]["chat_id"], context.bot_data[poll_id]["message_id"]
+    #     )
+    #
+
 def start_command(update: Update, context: CallbackContext):
-    context.bot.send_message(chat_id=update.effective_chat.id, text="I'm the BeautiPoll bot! please talk to me!")
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Hello")
+    context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to smart polling" + "Please choose one of the options:" )
+    context.bot.send_message(chat_id=update.effective_chat.id,
+                             text="/register <user-name>-Register to start" +" answering polls via telegram\n" +"<user-name> in smart polling system\n\n"+
+                             "\n" + "/remove <user-name>- To stop getting polls queries\n" + "<user-name> in smart polling system\n\n"
+                             + "\n" + "/poll <poll-name>- To initalize poll\n <poll-name> in smart polling system\n\n"
+                               +"\n"  +  "/start- Use start anytime to see this menu again")
+
+
+#####                         #######
+
+
+
+
+
 
 
 def help_command(update: Update, context: CallbackContext):
@@ -45,7 +172,10 @@ def register_cmd(update: Update, context: CallbackContext):
 def runbot() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
+    print(TELEGRAM_BOT_TOKEN)
+    # updater = Updater(os.environ.get(TELEGRAM_BOT_TOKEN, ''))
     updater = Updater('5067453157:AAHvdsy2WlAEvaYa8cDb059hhIlDm1evPNc')
+
 
     # Get the dispatcher to register handlers
     dispatcher = updater.dispatcher
@@ -63,6 +193,10 @@ def runbot() -> None:
     dispatcher.add_handler(CommandHandler("remove", unregister_cmd))
 
     dispatcher.add_handler(CommandHandler("register", register_cmd))
+
+    dispatcher.add_handler(CommandHandler('poll', poll))
+
+    dispatcher.add_handler(PollAnswerHandler(receive_poll_answer))
 
     # Start the Bot
     updater.start_polling()

@@ -1,3 +1,5 @@
+import json
+
 from flask import Flask, request
 from flask import Response
 from flask_sqlalchemy import SQLAlchemy
@@ -11,6 +13,24 @@ db_name = "beautipoll_db"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:'+port+'/'+db_name
 db = SQLAlchemy(app)
 # db.create_all()
+
+
+
+
+
+def dict_to_json(question_poll,answers_poll):
+    dict_to_json = {"question": question_poll}
+    i = 1
+    for answer in answers_poll:
+        answer_key = "answer" + str(i)
+        answers_poll = {answer_key: answer}
+        i = i + 1
+        dict_to_json.update(answers_poll)
+
+    # dict_to_json.update(answers_poll)
+    print(dict_to_json)
+    return  dict_to_json
+
 
 
 class Users(db.Model):
@@ -27,6 +47,10 @@ class Users(db.Model):
         # return '<User %r>' % self.username
         return "<Users(username='{}', chat_id={}, active={})>" \
             .format(self.username, self.chat_id, self.active)
+
+
+    def GetUserNameByChatId(chat_id,db_input):  # check if we  have more than 1 username per chat_id
+        return db_input.session.query(Users).filter_by(chat_id=chat_id).first().username
 
     def IsUserRegisteredByUsername(user_name_inserted, db_input):
         exists = db_input.session.query(Users).filter_by(username=user_name_inserted).first() is not None
@@ -92,19 +116,32 @@ class Admins(db.Model):
 
 class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
+    # poll_name = db.Column(db.String,nullable=False)
+    poll_telegram_id = db.Column(db.Integer, nullable=True)
 
-    def __init__(self, poll_id):
-        self.poll_id = poll_id
+    def __init__(self, poll_id,poll_telegram_id):
+         self.poll_id = poll_id
+         self.poll_telegram_id = poll_telegram_id
+
 
     def __repr__(self):
-        return "<Polls(poll_id={})>" \
-            .format(self.poll_id)
+        return "<Polls(poll_id={}, poll_telegram_id={})>" \
+            .format(self.poll_id, self.poll_telegram_id)
+
+
+    def addPoll(self,poll_id,poll_telegram,db_input):
+        new_poll = Polls(poll_id,poll_telegram)
+        db_input.session.add(new_poll)
+        db_input.session.commit()
+
 
 
 class Questions(db.Model):
     question_id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), nullable=False)
-    description = db.Column(db.String(300), nullable=False)
+    # description = db.Column(db.String(300), nullable=False)
+    description = db.Column(db.JSON(300), nullable=False)
+
 
     def __init__(self, question_id, poll_id, description):
         self.question_id = question_id
@@ -114,6 +151,17 @@ class Questions(db.Model):
     def __repr__(self):
         return "<Questions(question_id={}, poll_id={}, description='{}')>" \
             .format(self.question_id, self.poll_id, self.description)
+
+    def AddPollQuestion(self,question_id, poll_id, description, db_input):
+        new_question = Questions(question_id, poll_id, description)
+        db_input.session.add(new_question)
+        db_input.session.commit()
+
+    def GetQuestionByPollId(poll_id_, db_input):
+       return  db_input.session.query(Users).filter_by(poll_id=poll_id_).first().description
+
+
+
 
 
 class Answers(db.Model):
@@ -146,6 +194,11 @@ class PollsAnswers(db.Model):
     def __repr__(self):
         return "<PollsAnswers(username='{}', poll_id={}, question_id={}, answer_id={})>" \
             .format(self.username, self.poll_id, self.question_id, self.answer_id)
+
+    def addPollAnswer(self,username,poll_id,question_id,answer_id,db_input):
+        new_pollAnswer = PollsAnswers(username,poll_id,question_id,answer_id)
+        db_input.session.add(new_pollAnswer)
+        db_input.session.commit()
 
 
 @app.errorhandler(404)
@@ -229,6 +282,19 @@ def unregister_HTTP_request():
     #     else:
     #          return redirect(url_for('home'))
     #          return render_template('login.html', error=error)
+
+
+# @app.route('/poll', methods=['GET', 'POST'])
+# def Set_Poll():
+#     poll_id = request.args['poll_id']  # maybe change this to poll_name later
+#     description =  db.session.query(Questions).filter_by(poll_id=poll_id).first().description
+#     params = [] # params[0] = question , rest answers
+#     for key in description:
+#         params.append(list[key])
+
+
+
+
 
 
 @app.route('/')

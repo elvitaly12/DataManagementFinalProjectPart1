@@ -1,9 +1,9 @@
 
 Bot - Vitaly:
 * change bot name+hide token
-* add "/start" support according to the file
-* write "Unsupported action" for unsupported actions
-* implement polls in telegram
+** add "/start" support according to the file V
+* write "Unsupported action" for unsupported actions  (not sure if needed if we have **)
+* implement polls in telegram V
 
 UI - Ofir:
 * design Login page
@@ -19,9 +19,22 @@ Next:
 
 Together:
 * change password to hash
-* find a way to work on the same DB
+* find a way to work on the same DB (maybe migration?)
 
 
+
+###  1/8/22  meeting
+
+* field if the question is multiple answers or not ( in UI )
+* in question table  put telegram_id ( as telegram id is per question )
+* move create polls to ui
+* think how to store questions for one poll, and keep an order
+
+
+
+
+
+###
 
 done:
 * open git repository
