@@ -1,6 +1,6 @@
 import json
 import os
-import server_logic
+import app
 import requests
 import telegram
 from telegram import Update, ForceReply
@@ -39,14 +39,13 @@ def poll(update: Update, context: CallbackContext) -> None:
     if len2 <= 1 or len2 > 2:
         context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide Pollname.")
         return
-    poll_id_ = update['message']['text'].split(' ')[1]  # be careful between telegram poll_id and web poll_id
-    description = server_logic.db.session.query(server_logic.Questions).filter_by(poll_id=poll_id_).first().description
+    poll_id_ = update['message']['text'].split(' ')[1]  # OUR POLL_ID
+    description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id_).first().description
     # x = json.load(description)
     jsonData = json.loads(description)
     # print(jsonData)
     params = []  # params[0] = question , rest answers
     for key in jsonData:
-
         params.append(jsonData[key])
     poll_question = params[0]
     answers = params[1:]
@@ -63,10 +62,10 @@ def poll(update: Update, context: CallbackContext) -> None:
     )
     # print(message)  # add telegram_id here
     telegram_id = message.poll.id
-    server_logic.db.session.query(server_logic.Polls) \
-        .filter(server_logic.Polls.poll_id == poll_id_) \
-        .update({server_logic.Polls.poll_telegram_id: telegram_id})
-    server_logic.db.session.commit()
+    app.db.session.query(app.Polls) \
+        .filter(app.Polls.poll_id == poll_id_) \
+        .update({app.Questions.telegram_question_id: telegram_id})
+    app.db.session.commit()
 
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
@@ -74,11 +73,10 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     # print("answer update:" ,update)
     answer = update.poll_answer
     print(answer)
-    chat_id = answer.user.id  # user who answered the poll
     poll_telegram = answer.poll_id
     selected_options = answer.option_ids   # indexes of the selected options
-    poll_id = server_logic.db.session.query(server_logic.Polls).filter_by(poll_telegram=poll_telegram).first().poll_id
-    description = server_logic.db.session.query(server_logic.Questions).filter_by(poll_id=poll_id).first().description
+    description = app.db.session.query(app.Questions).filter_by(telegram_question_id=poll_telegram).first().description
+    # description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id).first().description
     jsonData = json.loads(description)
     params = []  # params[0] = question , rest answers
     for key in jsonData:
@@ -88,7 +86,9 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     user_answers = []
     for i in selected_options:
         user_answers.append(answers[i])
-    username =  server_logic.Users.GetUserNameByChatId(chat_id, server_logic.db)
+    chat_id = answer.user.id  # user who answered the poll
+    poll_id = app.db.session.query(app.Questions).filter_by(telegram_question_id=poll_telegram).first().poll_id
+    app.PollsAnswers.addPollAnswer(chat_id, poll_id, poll_telegram, poll_question, user_answers, app.db)  # tomorrow start from here
 
 
     # try:

@@ -6,12 +6,15 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
 from config import password
 from config import port
+from flask_migrate import Migrate
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db_name = "beautipoll_db"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:'+port+'/'+db_name
 db = SQLAlchemy(app)
+migrate = Migrate(app, db)
+# FLASK_APP= 'app.py'
 # db.create_all()
 
 
@@ -117,20 +120,23 @@ class Admins(db.Model):
 class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
     # poll_name = db.Column(db.String,nullable=False)
-    poll_telegram_id = db.Column(db.Integer, nullable=True)
+    # poll_telegram_id = db.Column(db.Integer, nullable=True)
+    poll_questions = db.Column(db.JSON(300),nullable=True)
 
-    def __init__(self, poll_id,poll_telegram_id):
+    def __init__(self, poll_id,poll_questions):
          self.poll_id = poll_id
-         self.poll_telegram_id = poll_telegram_id
+         # self.poll_telegram_id = poll_telegram_id
+         self.poll_questions = poll_questions
+
 
 
     def __repr__(self):
-        return "<Polls(poll_id={}, poll_telegram_id={})>" \
-            .format(self.poll_id, self.poll_telegram_id)
+        return "<Polls(poll_id={}, poll_questions='{}')>" \
+            .format(self.poll_id, self.poll_questions)
 
 
-    def addPoll(self,poll_id,poll_telegram,db_input):
-        new_poll = Polls(poll_id,poll_telegram)
+    def addPoll(self,poll_id,poll_questions,db_input):
+        new_poll = Polls(poll_id,poll_questions)
         db_input.session.add(new_poll)
         db_input.session.commit()
 
@@ -141,19 +147,21 @@ class Questions(db.Model):
     poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), nullable=False)
     # description = db.Column(db.String(300), nullable=False)
     description = db.Column(db.JSON(300), nullable=False)
+    telegram_question_id = db.Column(db.Integer, primary_key=False)
 
 
-    def __init__(self, question_id, poll_id, description):
+    def __init__(self, question_id, poll_id, description,telegram_question_id):
         self.question_id = question_id
         self.poll_id = poll_id
         self.description = description
+        self.telegram_question_id = telegram_question_id
 
     def __repr__(self):
-        return "<Questions(question_id={}, poll_id={}, description='{}')>" \
-            .format(self.question_id, self.poll_id, self.description)
+        return "<Questions(question_id={},poll_id={}, description='{}', telegram_question_id={})>" \
+            .format(self.question_id, self.poll_id, self.description,self.telegram_question_id)
 
-    def AddPollQuestion(self,question_id, poll_id, description, db_input):
-        new_question = Questions(question_id, poll_id, description)
+    def AddPollQuestion(self,question_id, poll_id, description,telegram_question_id, db_input):
+        new_question = Questions(question_id, poll_id, description,telegram_question_id)
         db_input.session.add(new_question)
         db_input.session.commit()
 
@@ -166,37 +174,40 @@ class Questions(db.Model):
 
 class Answers(db.Model):
     answer_id = db.Column(db.Integer, primary_key=True)
-    question_id = db.Column(db.Integer, ForeignKey('questions.question_id'), nullable=False)
+    telegram_question_id =  db.Column(db.Integer, primary_key=True)
+    # question_id = db.Column(db.Integer, ForeignKey('questions.question_id'), nullable=False)
     description = db.Column(db.String(300), nullable=False)
 
-    def __init__(self, answer_id, question_id, description):
+    def __init__(self, answer_id, telegram_question_id, description):
         self.answer_id = answer_id
-        self.question_id = question_id
+        self.telegram_question_id = telegram_question_id
         self.description = description
 
     def __repr__(self):
-        return "<Answers(answer_id={}, question_id={}, description='{}')>" \
-            .format(self.answer_id, self.question_id, self.description)
+        return "<Answers(answer_id={}, telegram_question_id={}, description='{}')>" \
+            .format(self.answer_id, self.telegram_question_id, self.description)
 
 
 class PollsAnswers(db.Model):
-    username = db.Column(db.String(30), ForeignKey('users.username'), primary_key=True)
+    chat_id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), primary_key=True)
-    question_id = db.Column(db.Integer, ForeignKey('questions.question_id'), primary_key=True)
-    answer_id = db.Column(db.Integer, ForeignKey('answers.answer_id'), primary_key=True)
+    telegram_question_id = db.Column(db.Integer,primary_key=True)
+    poll_question = db.Column(db.JSON, nullable=False)
+    answers = db.Column(db.JSON, nullable=False)
 
-    def __init__(self, username, poll_id, question_id, answer_id):
-        self.username = username
+    def __init__(self, chat_id, poll_id, telegram_question_id,poll_question ,answers):
+        self.chat_id = chat_id
         self.poll_id = poll_id
-        self.question_id = question_id
-        self.answer_id = answer_id
+        self.telegram_question_id = telegram_question_id
+        self.poll_question = poll_question
+        self.answers = answers
 
     def __repr__(self):
-        return "<PollsAnswers(username='{}', poll_id={}, question_id={}, answer_id={})>" \
-            .format(self.username, self.poll_id, self.question_id, self.answer_id)
+        return "<PollsAnswers(chat_id={}, poll_id={}, telegram_question_id={},poll_question ='{}' ,answers='{}')>" \
+            .format(self.chat_id, self.poll_id, self.telegram_question_id,self.poll_question ,self.answers)
 
-    def addPollAnswer(self,username,poll_id,question_id,answer_id,db_input):
-        new_pollAnswer = PollsAnswers(username,poll_id,question_id,answer_id)
+    def addPollAnswer(self,chat_id,poll_id,telegram_question_id,poll_question,answers,db_input):
+        new_pollAnswer = PollsAnswers(chat_id,poll_id,telegram_question_id,poll_question,answers)
         db_input.session.add(new_pollAnswer)
         db_input.session.commit()
 

@@ -5,15 +5,16 @@ import operator
 from sqlalchemy_utils.aggregates import manager
 
 from bot_logic import runbot
-from server_logic import app, dict_to_json, Questions, Polls
+from app import app, dict_to_json, Questions, Polls
 import threading
 from sqlalchemy.ext.declarative import declarative_base
-from server_logic import db
+from app import db
 from sqlalchemy_utils import database_exists, create_database
 # Base = declarative_base()
 # # from flask.ext.migrate import Migrate, MigrateCommand
 # from flask_migrate import Migrate,MigrateCommand
-from flask.cli  import FlaskGroup
+# from flask.cli  import FlaskGroup
+
 
 
 
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     flask_thread.start()
     # bot_thread = TelegramThread()
     # bot_thread.start()
-    cli = FlaskGroup(app)
+
 
 
 
