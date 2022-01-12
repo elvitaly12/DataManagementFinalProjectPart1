@@ -49,8 +49,8 @@ class TelegramThread(threading.Thread):
 
 
 if __name__ == "__main__":
-    flask_thread = FlaskThread()
-    flask_thread.start()
+    # flask_thread = FlaskThread()
+    # flask_thread.start()
     # bot_thread = TelegramThread()
     # bot_thread.start()
 
@@ -60,17 +60,22 @@ if __name__ == "__main__":
 
 
 
+    Polls.addPoll(10,'{11,12,13,14,}',db)
+    description = {"question": "where do u study?",'answer1':"technion",'answer2':"ben-gurion",
+                   'answer3':"tel-aviv",'answer4':"jerusalem"}
+    Questions.AddPollQuestion(11,10,description,-1,db)
 
-    # poll = Polls(10,-1)
-    # poll.addPoll(10,-1,db)  # tomorrow start from here
-    # question_id = 1
-    # poll_id = 2
-    # question = "how are you"
-    # answers = ["good", "great", "bad"]
-    # json_object = dict_to_json(question, answers)
-    #
-    # tmp = Questions(question_id,poll_id,json_object)
-    # tmp.AddPollQuestion(question_id,poll_id,json_object,db)
+    description = {"question": "which faculty?", 'answer1': "cs", 'answer2': "hasmal",
+                   'answer3': "math", 'answer4': "medicine"}
+    Questions.AddPollQuestion(12, 10, description, -1, db)
+
+    description = {"question": "which course", 'answer1': "matam", 'answer2': "ds",
+                   'answer3': "os", 'answer4': "compi"}
+    Questions.AddPollQuestion(13, 10, description, -1, db)
+
+    description = {"question": "grade u want?", 'answer1': "65", 'answer2': "70",
+                   'answer3': "75", 'answer4': "99"}
+    Questions.AddPollQuestion(14, 10, description, -1, db)
 
 
 

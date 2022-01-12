@@ -7,6 +7,18 @@ from sqlalchemy import ForeignKey
 from config import password
 from config import port
 from flask_migrate import Migrate
+import telegram
+from telegram import (
+    Poll,
+    ParseMode,
+    KeyboardButton,
+    KeyboardButtonPollType,
+    ReplyKeyboardMarkup,
+    ReplyKeyboardRemove,
+    Update,
+Bot
+
+)
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
@@ -18,7 +30,54 @@ migrate = Migrate(app, db)
 # db.create_all()
 
 
+#### 1/10
+bot = telegram.Bot(token='5096133703:AAEWvtF28cFDcbbWrqdkpqcfAMTIf_SLmrY')
+def sendpoll_to_users(users,question,answers):
+    for user in users:
+        chat_id = db.session.query(Questions).filter_by(username=user).first().chat_id
+        message = bot.send_poll(
+            chat_id,
+            question,
+            answers,
+            is_anonymous=False,
+            allows_multiple_answers=True,
+            type=Poll.REGULAR,
+            is_closed=False,
+            disable_notification=False,
+            api_kwargs={}  # use either this or poll_id
+        )
 
+
+def send_first_question_in_poll(question_id,poll_id):
+    description = db.session.query(Questions).filter_by(
+        question_id=question_id).first().description
+    jsonData = json.loads(description)
+    params = []  # params[0] = question , rest answers
+    for key in jsonData:
+        params.append(jsonData[key])
+    poll_question = params[0]
+    answers = params[1:]
+    chat_ids =  db.session.query(Users).filter_by(
+        active=True).all().chat_id
+    for user_chat_id in chat_ids:
+        message = bot.send_poll(
+            user_chat_id,
+            poll_question,
+            answers,
+            is_anonymous=False,
+            allows_multiple_answers=False,
+            type=Poll.REGULAR,
+            is_closed=False,
+            disable_notification=False,
+            api_kwargs={}  # use either this or poll_id
+        )
+        telegram_id = message.poll.id
+        db.session.query(Questions) \
+                .filter(Questions.question_id == question_id) \
+            .update({Questions.telegram_question_id: telegram_id})
+        db.session.commit()
+
+####
 
 
 def dict_to_json(question_poll,answers_poll):
@@ -121,7 +180,7 @@ class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
     # poll_name = db.Column(db.String,nullable=False)
     # poll_telegram_id = db.Column(db.Integer, nullable=True)
-    poll_questions = db.Column(db.JSON(300),nullable=True)
+    poll_questions = db.Column(db.JSON(300),nullable=True)  # {1,2,12,34,12} #num =question_id
 
     def __init__(self, poll_id,poll_questions):
          self.poll_id = poll_id
@@ -135,7 +194,7 @@ class Polls(db.Model):
             .format(self.poll_id, self.poll_questions)
 
 
-    def addPoll(self,poll_id,poll_questions,db_input):
+    def addPoll(poll_id,poll_questions,db_input):
         new_poll = Polls(poll_id,poll_questions)
         db_input.session.add(new_poll)
         db_input.session.commit()
@@ -160,7 +219,7 @@ class Questions(db.Model):
         return "<Questions(question_id={},poll_id={}, description='{}', telegram_question_id={})>" \
             .format(self.question_id, self.poll_id, self.description,self.telegram_question_id)
 
-    def AddPollQuestion(self,question_id, poll_id, description,telegram_question_id, db_input):
+    def AddPollQuestion(question_id, poll_id, description,telegram_question_id, db_input):
         new_question = Questions(question_id, poll_id, description,telegram_question_id)
         db_input.session.add(new_question)
         db_input.session.commit()
@@ -295,13 +354,43 @@ def unregister_HTTP_request():
     #          return render_template('login.html', error=error)
 
 
-# @app.route('/poll', methods=['GET', 'POST'])
-# def Set_Poll():
-#     poll_id = request.args['poll_id']  # maybe change this to poll_name later
-#     description =  db.session.query(Questions).filter_by(poll_id=poll_id).first().description
-#     params = [] # params[0] = question , rest answers
-#     for key in description:
-#         params.append(list[key])
+@app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : {12,"technion","cs","compilation","75"}
+def activate_poll():
+    if request.method == 'POST':
+        params = []
+        inpud_dict = request.form.to_dict()
+        for key in inpud_dict:
+            params.append(inpud_dict[key])
+        poll_id = params[0]
+        expected_answers_by_admin = params[1:] # already know the question by  poll_id
+        poll_questions = db.session.query(Polls).filter_by(
+            poll_id=poll_id).first().poll_questions  # {1,32,545,323,543}
+        question_ids = poll_questions.split(",")
+        send_first_question_in_poll(question_ids[0])
+        for question in question_ids:
+            i = 1  # starting from question number 1 and asnwer number 0
+            question_int  = int(question)
+            users_tosend_to  = db.session.query(PollsAnswers).filter_by(    # maybe add active filter too
+                answers=expected_answers_by_admin[i-1],poll_id=poll_id).all().chat_id
+            description = db.session.query(Questions).filter_by(
+                question_id=question_int).first().description
+            jsonData = json.loads(description)
+            params = []  # params[0] = question , rest answers
+            for key in jsonData:
+                params.append(jsonData[key])
+            poll_question = params[0]
+            answers = params[1:]
+            sendpoll_to_users(users_tosend_to,poll_question,answers)
+            i = i+1
+
+
+
+
+
+
+
+
+
 
 
 

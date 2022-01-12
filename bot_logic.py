@@ -5,6 +5,7 @@ import requests
 import telegram
 from telegram import Update, ForceReply
 # from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
+
 from telegram import (
     Poll,
     ParseMode,
@@ -13,6 +14,8 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
+Bot
+
 )
 from telegram.ext import (
     Updater,
@@ -30,42 +33,49 @@ import logging
 from config import TELEGRAM_BOT_TOKEN
 
 
+
+
+
 def poll(update: Update, context: CallbackContext) -> None:
     # print("unregister_cmd = ", update['message']['text'])
     # print("poll update:" ,update)
     # chat_id = update['message']['chat']['id']
     # print(chat_id)
-    len2 = len(update['message']['text'].split(' '))
-    if len2 <= 1 or len2 > 2:
-        context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide Pollname.")
-        return
-    poll_id_ = update['message']['text'].split(' ')[1]  # OUR POLL_ID
-    description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id_).first().description
-    # x = json.load(description)
-    jsonData = json.loads(description)
-    # print(jsonData)
-    params = []  # params[0] = question , rest answers
-    for key in jsonData:
-        params.append(jsonData[key])
-    poll_question = params[0]
-    answers = params[1:]
-    message = context.bot.send_poll(
-        update.effective_chat.id,
-        poll_question,
-        answers,
-        is_anonymous=False,
-        allows_multiple_answers=True,
-        type=Poll.REGULAR,
-        is_closed= False,
-        disable_notification= False,
-        api_kwargs = {}  #  use either this or poll_id
-    )
-    # print(message)  # add telegram_id here
-    telegram_id = message.poll.id
-    app.db.session.query(app.Polls) \
-        .filter(app.Polls.poll_id == poll_id_) \
-        .update({app.Questions.telegram_question_id: telegram_id})
-    app.db.session.commit()
+    # len2 = len(update['message']['text'].split(' '))
+    # if len2 <= 1 or len2 > 2:
+    #     context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide Pollname.")
+    #     return
+    # poll_id_ = update['message']['text'].split(' ')[1]  # OUR POLL_ID
+    # description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id_).first().description
+    # # x = json.load(description)
+    # jsonData = json.loads(description)
+    # # print(jsonData)
+    # params = []  # params[0] = question , rest answers
+    # for key in jsonData:
+    #     params.append(jsonData[key])
+    # poll_question = params[0]
+    # answers = params[1:]
+    # message = context.bot.send_poll(
+    #     update.effective_chat.id,
+    #     poll_question,
+    #     answers,
+    #     is_anonymous=False,
+    #     allows_multiple_answers=True,
+    #     type=Poll.REGULAR,
+    #     is_closed= False,
+    #     disable_notification= False,
+    #     api_kwargs = {}  #  use either this or poll_id
+    # )
+    # # print(message)  # add telegram_id here
+    # telegram_id = message.poll.id
+    # app.db.session.query(app.Polls) \
+    #     .filter(app.Polls.poll_id == poll_id_) \
+    #     .update({app.Questions.telegram_question_id: telegram_id})
+    # app.db.session.commit()
+    data = {"poll_id": 12 , "answer1": 'technion' , "asnwer2":'cs' , "asnwer3": '236369'}
+    url = 'http://127.0.0.1:5000/newpoll'
+    response = requests.post(url, data)
+
 
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
@@ -174,7 +184,8 @@ def runbot() -> None:
     # Create the Updater and pass it your bot's token.
     print(TELEGRAM_BOT_TOKEN)
     # updater = Updater(os.environ.get(TELEGRAM_BOT_TOKEN, ''))
-    updater = Updater('5067453157:AAHvdsy2WlAEvaYa8cDb059hhIlDm1evPNc')
+    # updater = Updater('5067453157:AAHvdsy2WlAEvaYa8cDb059hhIlDm1evPNc')
+    updater = Updater('5096133703:AAEWvtF28cFDcbbWrqdkpqcfAMTIf_SLmrY')
 
 
     # Get the dispatcher to register handlers

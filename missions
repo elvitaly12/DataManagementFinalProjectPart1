@@ -1,30 +1,29 @@
 
+Today:
 Bot - Vitaly:
-* change bot name+hide token
-* send polls to all of the users.
-  when sending a follow up poll, check if a user is active before sending him a poll.
+* test sending polls to multiple users.
+* when sending a follow up poll, check if a user is active before sending him a poll.
+* change password to hash (update db and backend code) (tirgul 7)
 
 UI - Ofir:
-* implement login logic
-
-UI - Next:
-* design Admins page -
+* fix logout
+* design Admins page and add a nav bar item
   AddAdmin an option for admins to register admin page (username+hash password)
   + CurrentAdminsList page
-* design CreateNewPoll page
+
+UI Next:
+* design CreateNewPoll page (and move create polls to ui)
 * design showPolls
+* implement login logic (check credentials in db)
 
-* change password to hash
+* understand how to communicate between UI and backend
 * find a way to work on the same DB (maybe migration?)
-
-* move create polls to ui
-* think how to store questions for one poll, and keep an order
 
 
 If there is more time:
 * add field isMultiple if the question is multiple answers or not ( in UI )
 * design more interesting pages
-
+* hide token
 
 
 
@@ -49,3 +48,5 @@ done:
 * design Login page
 * use logo website
 * in question table put telegram_id ( as telegram id is per question )
+* change bot name
+* think how to store questions for one poll, and keep an order
