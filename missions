@@ -1,40 +1,32 @@
 
 Bot - Vitaly:
 * change bot name+hide token
-** add "/start" support according to the file V
-* write "Unsupported action" for unsupported actions  (not sure if needed if we have **)
-* implement polls in telegram V
+* send polls to all of the users.
+  when sending a follow up poll, check if a user is active before sending him a poll.
 
 UI - Ofir:
-* design Login page
 * implement login logic
-* use logo website
 
-Next:
-* design AddAdmin page -
-  an option for admins to register admin (username+hash password)
-  + CurrentAdmins list
-* when sending a follow up poll, check if a user is active before sending him a poll.
+UI - Next:
+* design Admins page -
+  AddAdmin an option for admins to register admin page (username+hash password)
+  + CurrentAdminsList page
 * design CreateNewPoll page
+* design showPolls
 
-Together:
 * change password to hash
 * find a way to work on the same DB (maybe migration?)
 
-
-
-###  1/8/22  meeting
-
-* field if the question is multiple answers or not ( in UI )
-* in question table  put telegram_id ( as telegram id is per question )
 * move create polls to ui
 * think how to store questions for one poll, and keep an order
 
 
+If there is more time:
+* add field isMultiple if the question is multiple answers or not ( in UI )
+* design more interesting pages
 
 
 
-###
 
 done:
 * open git repository
@@ -51,3 +43,9 @@ done:
 * correct error numbers
 *change internal without digits
 
+* add "/start" support according to the file V
+* write "Unsupported action" for unsupported actions (not needed )
+* implement polls in telegram
+* design Login page
+* use logo website
+* in question table put telegram_id ( as telegram id is per question )
