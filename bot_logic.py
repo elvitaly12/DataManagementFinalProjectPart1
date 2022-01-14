@@ -5,7 +5,7 @@ import requests
 import telegram
 from telegram import Update, ForceReply
 # from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
-
+from app import telegram_chat_id_map
 from telegram import (
     Poll,
     ParseMode,
@@ -72,9 +72,13 @@ def poll(update: Update, context: CallbackContext) -> None:
     #     .filter(app.Polls.poll_id == poll_id_) \
     #     .update({app.Questions.telegram_question_id: telegram_id})
     # app.db.session.commit()
-    data = {"poll_id": 12 , "answer1": 'technion' , "asnwer2":'cs' , "asnwer3": '236369'}
-    url = 'http://127.0.0.1:5000/newpoll'
-    response = requests.post(url, data)
+    # data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
+    # url = 'http://127.0.0.1:5000/newpoll'
+    # response = requests.post(url, data)
+
+    params = {"poll_id": 10}
+    response = requests.get(url='http://127.0.0.1:5000/poll_results', params=params)
+
 
 
 
@@ -82,10 +86,11 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     """Summarize a users poll vote"""
     # print("answer update:" ,update)
     answer = update.poll_answer
-    print(answer)
     poll_telegram = answer.poll_id
     selected_options = answer.option_ids   # indexes of the selected options
-    description = app.db.session.query(app.Questions).filter_by(telegram_question_id=poll_telegram).first().description
+    question_id = app.db.session.query(app.telegram_chat_id_map).filter_by(telegram_bot_id=poll_telegram).first().question_id
+    description = app.db.session.query(app.Questions).filter_by(
+        question_id=question_id).first().description
     # description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id).first().description
     jsonData = json.loads(description)
     params = []  # params[0] = question , rest answers
@@ -93,39 +98,99 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
         params.append(jsonData[key])
     poll_question = params[0]
     answers = params[1:]
-    user_answers = []
+    user_answers = ""
     for i in selected_options:
-        user_answers.append(answers[i])
+        # user_answers.append(answers[i])
+        user_answers += answers[i]
+    expected_answer = app.db.session.query(app.telegram_chat_id_map).filter_by(telegram_bot_id=poll_telegram).first().expected_answer
     chat_id = answer.user.id  # user who answered the poll
-    poll_id = app.db.session.query(app.Questions).filter_by(telegram_question_id=poll_telegram).first().poll_id
-    app.PollsAnswers.addPollAnswer(chat_id, poll_id, poll_telegram, poll_question, user_answers, app.db)  # tomorrow start from here
+    poll_id = app.db.session.query(app.Questions).filter_by(question_id=question_id).first().poll_id
+    app.PollsAnswers.addPollAnswer(chat_id, poll_id, poll_telegram, poll_question, user_answers,question_id, app.db)
+
+    #  prepare for next question  in poll
+    poll_questions = app.db.session.query(app.Polls).filter_by(poll_id=poll_id).first().poll_questions
+    poll_questions_ids = poll_questions[2:-3].split(",")
+    last_question_in_the_poll = poll_questions_ids[-1]
 
 
-    # try:
-    #     questions = context.bot_data[poll_id]["questions"]
-    # # this means this poll answer update is from an old poll, we can't do our answering then
-    # except KeyError:
-    #     return
-    # selected_options = answer.option_ids
-    # answer_string = ""
-    # for question_id in selected_options:
-    #     if question_id != selected_options[-1]:
-    #         answer_string += answers[question_id] + " and "
-    #     else:
-    #         answer_string += answers[question_id]
-    # # context.bot.send_message(
-    # #     context.bot_data[poll_id]["chat_id"],
-    # #     f"{update.effective_user.mention_html()} feels {answer_string}!",
-    # #     parse_mode=ParseMode.HTML,
-    # # )
-    # print(answer_string)
-    # context.bot_data[poll_id]["answers"] += 1
-    # # Close poll after three participants voted
-    # if context.bot_data[poll_id]["answers"] == 3:
-    #     context.bot.stop_poll(
-    #         context.bot_data[poll_id]["chat_id"], context.bot_data[poll_id]["message_id"]
-    #     )
-    #
+    is_more_question_to_ask =  last_question_in_the_poll != str(question_id)
+    # print("is_more_question_to_ask:" , is_more_question_to_ask)
+    is_user_asnwered_right = user_answers == expected_answer
+    # print("is_user_asnwered_right:", is_user_asnwered_right)
+    is_user_active  = app.db.session.query(app.Users).filter_by(chat_id=chat_id).first().active
+    # print("is_user_active:", is_user_active)
+
+    # send next poll
+    if is_more_question_to_ask and  is_user_asnwered_right and is_user_active:
+        i = 0
+        next_question_id = str(-1)
+        for question in poll_questions_ids:
+            if question == str(question_id):
+                next_question_id = poll_questions_ids[i+1]
+            else:
+                i = i + 1
+
+        description_to_send = app.db.session.query(app.Questions).filter_by(
+            question_id=next_question_id).first().description
+
+        jsonData = json.loads(description_to_send)
+        params = []  # params[0] = question , rest answers
+        for key in jsonData:
+            params.append(jsonData[key])
+        new_poll_question = params[0]
+        new_poll_answers = params[1:]
+        message = context.bot.send_poll(
+            chat_id,
+            new_poll_question,
+            new_poll_answers,
+            is_anonymous=False,
+            allows_multiple_answers=False,
+            type=Poll.REGULAR,
+            is_closed= False,
+            disable_notification= False,
+            api_kwargs = {}
+        )
+        expected_answers = app.db.session.query(app.MapPollIdExpectedAnswers).filter_by(poll_id=poll_id).first().expected_answers
+        expected_answers = expected_answers[:-1].split(",")
+        next_expected_answer = ""
+        # print("expected_answers:",expected_answers)
+
+
+        # create an iterator object from that iterable
+        iter_obj = iter(expected_answers)
+
+        # infinite loop
+        while True:
+            try:
+
+                answer = next(iter_obj)
+                # do something with element
+                if answer == expected_answer:
+                    next_expected_answer = next(iter_obj)
+
+                    break
+            except StopIteration:
+                # if StopIteration is raised, break from loop
+                break
+
+
+        telegram_chat_id_map.add_new_map(str(message.poll.id), str(chat_id), int(next_question_id),
+                                         next_expected_answer, app.db)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 def start_command(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Hello")

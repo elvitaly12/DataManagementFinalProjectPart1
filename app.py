@@ -19,49 +19,65 @@ from telegram import (
 Bot
 
 )
+import hashlib
+import os
+salt = os.urandom(32)   # store  this  , and do  not change it  hence we use it for all users
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db_name = "beautipoll_db"
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:'+port+'/'+db_name
 db = SQLAlchemy(app)
-migrate = Migrate(app, db)
+migrate = Migrate(app, db, compare_type=True,)
 # FLASK_APP= 'app.py'
 # db.create_all()
 
 
 #### 1/10
 bot = telegram.Bot(token='5096133703:AAEWvtF28cFDcbbWrqdkpqcfAMTIf_SLmrY')
-def sendpoll_to_users(users,question,answers):
+def sendpoll_to_users(users,question,answers,question_id,expected_answer):
+
+    # active_chat_id =  db.session.query(Users).filter_by(username=user).all().active
     for user in users:
         chat_id = db.session.query(Questions).filter_by(username=user).first().chat_id
-        message = bot.send_poll(
-            chat_id,
-            question,
-            answers,
-            is_anonymous=False,
-            allows_multiple_answers=True,
-            type=Poll.REGULAR,
-            is_closed=False,
-            disable_notification=False,
-            api_kwargs={}  # use either this or poll_id
-        )
+
+        if db.session.query(Users).filter_by(username=user).first().active == True:
+            message = bot.send_poll(
+                chat_id,
+                question,
+                answers,
+                is_anonymous=False,
+                allows_multiple_answers=True,
+                type=Poll.REGULAR,
+                is_closed=False,
+                disable_notification=False,
+                api_kwargs={}  # use either this or poll_id
+            )
+            telegram_chat_id_map.add_new_map(message.poll.id,chat_id,question_id,expected_answer,db)
 
 
-def send_first_question_in_poll(question_id,poll_id):
+
+def send_first_question_in_poll(question_id,expected_answers):
+    # print("inside poll: " ,question_id)
     description = db.session.query(Questions).filter_by(
-        question_id=question_id).first().description
+        question_id=int(question_id)).first().description
+
+    # print("description:" , description)
     jsonData = json.loads(description)
     params = []  # params[0] = question , rest answers
     for key in jsonData:
         params.append(jsonData[key])
     poll_question = params[0]
     answers = params[1:]
-    chat_ids =  db.session.query(Users).filter_by(
-        active=True).all().chat_id
-    for user_chat_id in chat_ids:
+    # print("poll_question:", poll_question)
+    # print("answers:", answers)
+    chat_ids =  db.session.query(Users.chat_id).filter_by(
+        active=True).all()
+    result_dict = map(lambda q: q._asdict(), chat_ids)
+    for user_chat_id in result_dict:
+        # print(user_chat_id)
         message = bot.send_poll(
-            user_chat_id,
+            user_chat_id['chat_id'],
             poll_question,
             answers,
             is_anonymous=False,
@@ -71,11 +87,12 @@ def send_first_question_in_poll(question_id,poll_id):
             disable_notification=False,
             api_kwargs={}  # use either this or poll_id
         )
-        telegram_id = message.poll.id
-        db.session.query(Questions) \
-                .filter(Questions.question_id == question_id) \
-            .update({Questions.telegram_question_id: telegram_id})
-        db.session.commit()
+        telegram_bot_id = message.poll.id
+        # print("telegram_bot_id:" , telegram_bot_id)
+        # print("user_chat_id['chat_id']:", user_chat_id['chat_id'])
+        telegram_chat_id_map.add_new_map(str(telegram_bot_id), str(user_chat_id['chat_id']),int(question_id),expected_answers, db)
+
+
 
 ####
 
@@ -90,7 +107,7 @@ def dict_to_json(question_poll,answers_poll):
         dict_to_json.update(answers_poll)
 
     # dict_to_json.update(answers_poll)
-    print(dict_to_json)
+
     return  dict_to_json
 
 
@@ -109,6 +126,17 @@ class Users(db.Model):
         # return '<User %r>' % self.username
         return "<Users(username='{}', chat_id={}, active={})>" \
             .format(self.username, self.chat_id, self.active)
+
+
+    def DeleteUserName(username,db_input):
+        obj = Users\
+            .query.filter_by(username=username).first()
+         # db_input.session.query(Users).filter_by(username=username).first().delete()
+        db.session.delete(obj)
+        db.session.commit()
+
+
+
 
 
     def GetUserNameByChatId(chat_id,db_input):  # check if we  have more than 1 username per chat_id
@@ -165,7 +193,7 @@ class Users(db.Model):
 
 class Admins(db.Model):
     username = db.Column(db.String(30), primary_key=True)
-    password = db.Column(db.String(20), nullable=False)
+    password = db.Column(db.String(100), nullable=False)   #  salt+key
 
     def __init__(self, username, password):
         self.username = username
@@ -176,11 +204,79 @@ class Admins(db.Model):
             .format(self.username, self.password)
 
 
+    def add_admin(username,password,db_input):
+        new_Admin = Admins(username, password)
+        db_input.session.add(new_Admin)
+        db_input.session.commit()
+
+
+class telegram_chat_id_map(db.Model):
+    telegram_bot_id = db.Column(db.String(100), primary_key=True)
+    chat_id = db.Column(db.String(100), nullable=False)
+    question_id = db.Column(db.Integer(),nullable=True)
+    expected_answer = db.Column(db.String(100), nullable=True)
+
+    def __init__(self, telegram_bot_id, chat_id,question_id,expected_answer):
+        self.telegram_bot_id = telegram_bot_id
+        self.chat_id = chat_id
+        self.question_id=question_id
+        self.expected_answer = expected_answer
+
+    def __repr__(self):
+        return "<telegram_chat_id_map(telegram_bot_id='{}', chat_id='{}',question_id={},expected_answer='{}')>" \
+            .format(self.telegram_bot_id, self.chat_id,self.question_id,self.expected_answer)
+
+
+    def add_new_map(telegram_bot_id,chat_id,question_id,expected_answer,db_input):
+        new_poll = telegram_chat_id_map(telegram_bot_id,chat_id,question_id,expected_answer)
+        db_input.session.add(new_poll)
+        db_input.session.commit()
+
+    def DeleteUserName(teelgram_bot_id, db_input):
+            print(teelgram_bot_id)
+            obj = telegram_chat_id_map \
+                .query.filter_by(telegram_bot_id=teelgram_bot_id).first()
+            print(obj)
+            # db_input.session.query(Users).filter_by(username=username).first().delete()
+            db_input.session.delete(obj)
+            db_input.session.commit()
+
+
+
+class MapPollIdExpectedAnswers(db.Model):
+    poll_id = db.Column(db.Integer(), primary_key=True)
+    expected_answers = db.Column(db.String(100), nullable=True)
+
+    def __init__(self, poll_id, expected_answers):
+        self.poll_id = poll_id
+        self.expected_answers = expected_answers
+
+    def __repr__(self):
+        return "<MapPollIdExpectedAnswers(poll_id={},expected_answers='{}')>" \
+            .format(self.poll_id, self.expected_answers)
+
+    def add_new_map_Poll_expected_asnwers(poll_id, expected_answers,db_input):
+        new_poll = MapPollIdExpectedAnswers(poll_id, expected_answers)
+        db_input.session.add(new_poll)
+        db_input.session.commit()
+
+
+    def Delete_PollMapping(poll_id, db_input):
+
+            obj = MapPollIdExpectedAnswers \
+                .query.filter_by(poll_id=poll_id).first()
+            print(obj)
+            # db_input.session.query(Users).filter_by(username=username).first().delete()
+            db_input.session.delete(obj)
+            db_input.session.commit()
+
+
+
 class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
     # poll_name = db.Column(db.String,nullable=False)
     # poll_telegram_id = db.Column(db.Integer, nullable=True)
-    poll_questions = db.Column(db.JSON(300),nullable=True)  # {1,2,12,34,12} #num =question_id
+    poll_questions = db.Column(db.String(300),nullable=True)  # {1,2,12,34,12} #num =question_id
 
     def __init__(self, poll_id,poll_questions):
          self.poll_id = poll_id
@@ -205,8 +301,8 @@ class Questions(db.Model):
     question_id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), nullable=False)
     # description = db.Column(db.String(300), nullable=False)
-    description = db.Column(db.JSON(300), nullable=False)
-    telegram_question_id = db.Column(db.Integer, primary_key=False)
+    description = db.Column(db.String(300), nullable=False)
+    telegram_question_id = db.Column(db.String(50), primary_key=False)   # too many chars for integer
 
 
     def __init__(self, question_id, poll_id, description,telegram_question_id):
@@ -216,7 +312,7 @@ class Questions(db.Model):
         self.telegram_question_id = telegram_question_id
 
     def __repr__(self):
-        return "<Questions(question_id={},poll_id={}, description='{}', telegram_question_id={})>" \
+        return "<Questions(question_id={},poll_id={}, description='{}', telegram_question_id='{}')>" \
             .format(self.question_id, self.poll_id, self.description,self.telegram_question_id)
 
     def AddPollQuestion(question_id, poll_id, description,telegram_question_id, db_input):
@@ -250,23 +346,26 @@ class Answers(db.Model):
 class PollsAnswers(db.Model):
     chat_id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), primary_key=True)
-    telegram_question_id = db.Column(db.Integer,primary_key=True)
-    poll_question = db.Column(db.JSON, nullable=False)
-    answers = db.Column(db.JSON, nullable=False)
+    telegram_question_id = db.Column(db.String(100),primary_key=True)
+    question_id = db.Column(db.Integer, primary_key=False)
+    poll_question = db.Column(db.String, nullable=False)
+    answers = db.Column(db.String, nullable=False)
 
-    def __init__(self, chat_id, poll_id, telegram_question_id,poll_question ,answers):
+
+    def __init__(self, chat_id, poll_id, telegram_question_id,poll_question ,answers,question_id):
         self.chat_id = chat_id
         self.poll_id = poll_id
         self.telegram_question_id = telegram_question_id
         self.poll_question = poll_question
         self.answers = answers
+        self.question_id = question_id
 
     def __repr__(self):
-        return "<PollsAnswers(chat_id={}, poll_id={}, telegram_question_id={},poll_question ='{}' ,answers='{}')>" \
-            .format(self.chat_id, self.poll_id, self.telegram_question_id,self.poll_question ,self.answers)
+        return "<PollsAnswers(chat_id={}, poll_id={}, telegram_question_id='{}',poll_question ='{}' ,answers='{}',question_id={})>" \
+            .format(self.chat_id, self.poll_id, self.telegram_question_id,self.poll_question ,self.answers,self.question_id)
 
-    def addPollAnswer(self,chat_id,poll_id,telegram_question_id,poll_question,answers,db_input):
-        new_pollAnswer = PollsAnswers(chat_id,poll_id,telegram_question_id,poll_question,answers)
+    def addPollAnswer(chat_id,poll_id,telegram_question_id,poll_question,answers,question_id,db_input):
+        new_pollAnswer = PollsAnswers(chat_id,poll_id,telegram_question_id,poll_question,answers,question_id)
         db_input.session.add(new_pollAnswer)
         db_input.session.commit()
 
@@ -365,23 +464,75 @@ def activate_poll():
         expected_answers_by_admin = params[1:] # already know the question by  poll_id
         poll_questions = db.session.query(Polls).filter_by(
             poll_id=poll_id).first().poll_questions  # {1,32,545,323,543}
+        poll_questions = poll_questions[2:-2]
         question_ids = poll_questions.split(",")
-        send_first_question_in_poll(question_ids[0])
-        for question in question_ids:
-            i = 1  # starting from question number 1 and asnwer number 0
-            question_int  = int(question)
-            users_tosend_to  = db.session.query(PollsAnswers).filter_by(    # maybe add active filter too
-                answers=expected_answers_by_admin[i-1],poll_id=poll_id).all().chat_id
-            description = db.session.query(Questions).filter_by(
-                question_id=question_int).first().description
-            jsonData = json.loads(description)
-            params = []  # params[0] = question , rest answers
-            for key in jsonData:
-                params.append(jsonData[key])
-            poll_question = params[0]
-            answers = params[1:]
-            sendpoll_to_users(users_tosend_to,poll_question,answers)
-            i = i+1
+        send_first_question_in_poll(question_ids[0],expected_answers_by_admin[0])
+
+        expected_Answers = ""
+        for answer in expected_answers_by_admin:
+            expected_Answers += answer + ","
+
+        poll_id_in_map = db.session.query(MapPollIdExpectedAnswers).filter_by(poll_id=poll_id).first()
+        if poll_id_in_map==None:
+            MapPollIdExpectedAnswers.add_new_map_Poll_expected_asnwers(poll_id, expected_Answers, db)
+
+
+
+@app.route('/add_admin', methods=['GET', 'POST'])
+def register_new_admin():
+    if request.method == 'GET':
+        admin_user_name = request.args['UserName']
+        admin_passworrd = request.args['Password']
+        salt = os.urandom(32)  # for each  user , we store differnt salt [:32]
+        key = hashlib.pbkdf2_hmac(
+            'sha256',  # The hash digest algorithm for HMAC
+            admin_passworrd.encode('utf-8'),  # Convert the password to bytes
+            salt,  # Provide the salt
+            100000,  # It is recommended to use at least 100,000 iterations of SHA-256
+            dklen=128  # Get a 128 byte key
+        )
+        storage = salt + key
+        Admins.add_admin(admin_user_name,storage,db)
+        # salt_from_storage = storage[:32]  # 32 is the length of the salt
+        # key_from_storage = storage[32:]
+
+
+@app.route('/poll_results', methods=['GET', 'POST']) # from ui recieve  poll_id
+def poll_results():
+    poll_id = request.args['poll_id']
+    # poll_questions = db.session.query(Polls.poll_questions).filter_by(poll_id=poll_id)
+    poll_questions = db.session.query(Polls).filter_by(poll_id=poll_id).first().poll_questions
+    poll_questions =poll_questions[2:-3].split(',')
+    # print("poll_questions:",poll_questions)
+    results =  []
+    for question in poll_questions:
+        question_result = ""
+        description = db.session.query(Questions).filter_by(
+            question_id=int(question)).first().description
+
+        # print("description:" , description)
+        jsonData = json.loads(description)
+        params = []  # params[0] = question , rest answers
+        for key in jsonData:
+            params.append(jsonData[key])
+        poll_question = params[0]
+        # print("poll_question:", poll_question)
+        answers = params[1:]
+        # print("answers:", answers)
+        question_result +=poll_question
+        # print("question_result:", question_result)
+        for answer in answers:
+           answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
+           # print("answer_count:", answer_count)
+           question_result += ":" + answer + " count: " + str(answer_count) +" "
+           # print("poll_question:", poll_question)
+        results.append(question_result)
+    print(results)
+    return
+
+
+
+
 
 
 
