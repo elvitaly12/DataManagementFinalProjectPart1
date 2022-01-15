@@ -25,7 +25,7 @@ Bot
 import hashlib
 import os
 
-
+import rncryptor
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
 db_name = "beautipoll_db"
@@ -199,20 +199,30 @@ class Users(db.Model):
 
 class Admins(db.Model):
     username = db.Column(db.String(30), primary_key=True)
-    password = db.Column(db.String(512), nullable=False)   #  salt+key
+    encrypted_data = db.Column(db.String(512), nullable=False)
+    # key = db.Column(db.String(512), nullable=False)
 
-    def __init__(self, username, password):
+    def __init__(self, username, encrypted_data):
         self.username = username
-        self.password = password
+        self.encrypted_data = encrypted_data
+
 
     def __repr__(self):
-        return "<Admins(username='{}', password='{}')>" \
-            .format(self.username, self.password)
+        return "<Admins(username='{}', encrypted_data='{}')>" \
+            .format(self.username, self.encrypted_data,)
 
 
-    def add_admin(username,password,db_input):
-        new_Admin = Admins(username, password)
+    def add_admin(username,encrypted_data,db_input):
+        new_Admin = Admins(username, encrypted_data)
         db_input.session.add(new_Admin)
+        db_input.session.commit()
+
+    def Delete_Admin(username, db_input):
+        obj = Admins \
+            .query.filter_by(username=username).first()
+        print(obj)
+        # db_input.session.query(Users).filter_by(username=username).first().delete()
+        db_input.session.delete(obj)
         db_input.session.commit()
 
 
@@ -492,17 +502,10 @@ def register_new_admin():
         admin_password = request.headers.get('Password')
         print('admin_password', admin_password)
         salt = os.urandom(32)  # for each user , we store differnt salt [:32]
-        key = hashlib.pbkdf2_hmac(
-            'sha256',  # The hash digest algorithm for HMAC
-            admin_password.encode('utf-8'),  # Convert the password to bytes
-            salt,  # Provide the salt
-            100000,  # It is recommended to use at least 100,000 iterations of SHA-256
-            dklen=128  # Get a 128 byte key
-        )
-        storage = salt + key
+        key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 1000)
         check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
         if check_user_admin is None:
-            Admins.add_admin(admin_user_name, storage, db)
+            Admins.add_admin(admin_user_name, salt,key, db)
             # salt_from_storage = storage[:32]  # 32 is the length of the salt
             # key_from_storage = storage[32:]
             print(200)
@@ -514,9 +517,9 @@ def register_new_admin():
 @app.route("/login_auth", methods=["GET"], strict_slashes=False)
 def login_auth():
     admin_user_name = request.headers.get('Username')
-    print('admin_user_name', admin_user_name)
+
     input_password = request.headers.get('Password')
-    print('input_password', input_password)
+
     admin_entry = db.session.query(Admins).filter_by(
         username=admin_user_name).first()
     print('admin_entry', admin_entry)
@@ -526,26 +529,12 @@ def login_auth():
         return Response('Unauthorized', status=401)
 
     else:
-        saved_password = admin_entry.password
-        print('saved_password', saved_password)
+        cryptor = rncryptor.RNCryptor()
+        encrypted_data = admin_entry.encrypted_data
+        encoded_data = encrypted_data.encode(encoding= 'iso8859-1')
+        decrypted_data = cryptor.decrypt(encoded_data, admin_user_name)
 
-        salt_from_storage = saved_password[:32]  # 32 is the length of the salt
-        key_from_storage = saved_password[33:]
-        print('key_from_storage', key_from_storage)
-        print('salt_from_storage', salt_from_storage)
-
-        new_key = hashlib.pbkdf2_hmac(
-            'sha256',
-            input_password.encode('utf-8'),  # Convert the password to bytes
-            salt_from_storage.encode('utf-8'),
-            100000,
-            dklen=128  # Get a 128 byte key
-        )
-        print('new_key', new_key)
-        encoded_key_from_storage = key_from_storage.encode('utf-8')
-        print('encoded_key_from_storage', encoded_key_from_storage)
-
-        if new_key == encoded_key_from_storage:
+        if decrypted_data == input_password:
             print(200)
             return Response('blaOKbla', status=200)
         else:

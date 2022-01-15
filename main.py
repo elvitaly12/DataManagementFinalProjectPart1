@@ -4,7 +4,7 @@ import operator
 from sqlalchemy_utils.aggregates import manager
 
 from bot_logic import runbot
-from app import app,Users, dict_to_json, Questions, Polls,telegram_chat_id_map,MapPollIdExpectedAnswers,PollsAnswers
+from app import app,Users, dict_to_json, Questions, Polls,telegram_chat_id_map,MapPollIdExpectedAnswers,PollsAnswers,Admins
 import threading
 from sqlalchemy.ext.declarative import declarative_base
 from app import db
@@ -13,7 +13,7 @@ from sqlalchemy_utils import database_exists, create_database
 # # from flask.ext.migrate import Migrate, MigrateCommand
 # from flask_migrate import Migrate,MigrateCommand
 # from flask.cli  import FlaskGroup
-
+import hashlib
 
 class FlaskThread(threading.Thread):
     def run(self) -> None:
@@ -40,18 +40,64 @@ class TelegramThread(threading.Thread):
     # app.config["SQLALCHEMY_DATABASE_URI"] = "postgresql://postgres:q1w2e3r4t@localhost:5433/books"
     # engine = create_engine(app.config["SQLALCHEMY_DATABASE_URI"])
     # Base.metadata.create_all(engine)
+import rncryptor
+
 
 
 if __name__ == "__main__":
+    username = 'vitaly'
+    password = '123456'
+
+    # # rncryptor.RNCryptor's methods
+    # cryptor = rncryptor.RNCryptor()
+    # encrypted_data = cryptor.encrypt(password, username)
+    # encoded_data = encrypted_data.decode(encoding= 'iso8859-1')
+    # # Admins.Delete_Admin("vitaly", db)
+    # Admins.add_admin(username,encoded_data,db)
+
+
+
+    # Admins.add_admin(username,encrypted_data)
+
+
+    # # rncryptor's functions
+    # encrypted_data = rncryptor.encrypt(username, password)
+    # decrypted_data = rncryptor.decrypt(encrypted_data, password)
+    # assert username == decrypted_data
+
+
+
     flask_thread = FlaskThread()
     flask_thread.start()
     bot_thread = TelegramThread()
     bot_thread.start()
 
+
+
+
+
+
+
+
+    # salt = db.session.query(Admins).filter_by(
+    #     username="vitaly").first().salt
+    # # print("salt:", salt)
+    #
+    # old_key = db.session.query(Admins).filter_by(
+    #     username="vitaly").first().key
+    # username = "vitaly"
+    # password = "123456"
+    # salt_test = os.urandom(32)  # for each user , we store differnt salt [:32]
+    # str_salt = str(salt_test)
+
+
+
+
+
     # PollsAnswers.addPollAnswer(1, 10, 1111, "where do u study?", "technion", 11, db)
     # PollsAnswers.addPollAnswer(2, 10, 1112, "where do u study?", "tel-aviv", 11, db)
-
-    # db.session.query(PollsAnswers).delete()
+    #
+    # db.session.query(Admins).delete()
     # db.session.commit()
 
 
