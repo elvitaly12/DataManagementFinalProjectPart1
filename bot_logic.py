@@ -30,7 +30,7 @@ import logging
 
 
 #####    PART 2 - NEW FUNCS    #######
-from config import TELEGRAM_BOT_TOKEN
+# from config import TELEGRAM_BOT_TOKEN
 
 
 
@@ -247,7 +247,7 @@ def register_cmd(update: Update, context: CallbackContext):
 def runbot() -> None:
     """Start the bot."""
     # Create the Updater and pass it your bot's token.
-    print(TELEGRAM_BOT_TOKEN)
+    # print(TELEGRAM_BOT_TOKEN)
     # updater = Updater(os.environ.get(TELEGRAM_BOT_TOKEN, ''))
     # updater = Updater('5067453157:AAHvdsy2WlAEvaYa8cDb059hhIlDm1evPNc')
     updater = Updater('5096133703:AAEWvtF28cFDcbbWrqdkpqcfAMTIf_SLmrY')
