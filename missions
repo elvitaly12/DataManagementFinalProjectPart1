@@ -1,24 +1,17 @@
 
-Today:
-Bot - Vitaly:
-* test sending polls to multiple users.
-* when sending a follow up poll, check if a user is active before sending him a poll.
-* change password to hash (update db and backend code) (tirgul 7)
-
-UI - Ofir:
-* fix logout
-* design Admins page and add a nav bar item
-  AddAdmin an option for admins to register admin page (username+hash password)
-  + CurrentAdminsList page
-
-UI Next:
-* design CreateNewPoll page (and move create polls to ui)
-* design showPolls
+Ofir:
 * implement login logic (check credentials in db)
+  and add_admin logic
+* design CreateNewPoll page (and move create polls to ui)
+* fix bug of form not empty
 
-* understand how to communicate between UI and backend
+Vitaly:
+* design showPolls with amCharts
+
+
+Misc:
 * find a way to work on the same DB (maybe migration?)
-
+* when sending a follow up poll, check if a user is active before sending him a poll.
 
 If there is more time:
 * add field isMultiple if the question is multiple answers or not ( in UI )
@@ -50,3 +43,10 @@ done:
 * in question table put telegram_id ( as telegram id is per question )
 * change bot name
 * think how to store questions for one poll, and keep an order
+* fix logout
+* design Admins page and add a nav bar item
+  AddAdmin an option for admins to register admin page (username+hash password)
+  + CurrentAdminsList page
+* understand how to communicate between UI and backend
+* test sending polls to multiple users.
+* change password to hash (update db and backend code) (tirgul 7)
