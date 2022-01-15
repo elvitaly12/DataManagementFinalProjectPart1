@@ -1,7 +1,6 @@
 import json
 import os
 import operator
-
 from sqlalchemy_utils.aggregates import manager
 
 from bot_logic import runbot
@@ -14,10 +13,6 @@ from sqlalchemy_utils import database_exists, create_database
 # # from flask.ext.migrate import Migrate, MigrateCommand
 # from flask_migrate import Migrate,MigrateCommand
 # from flask.cli  import FlaskGroup
-
-
-
-
 
 
 class FlaskThread(threading.Thread):

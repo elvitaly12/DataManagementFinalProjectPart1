@@ -491,7 +491,7 @@ def register_new_admin():
         print('admin_user_name', admin_user_name)
         admin_password = request.headers.get('Password')
         print('admin_password', admin_password)
-        salt = os.urandom(32)  # for each  user , we store differnt salt [:32]
+        salt = os.urandom(32)  # for each user , we store differnt salt [:32]
         key = hashlib.pbkdf2_hmac(
             'sha256',  # The hash digest algorithm for HMAC
             admin_password.encode('utf-8'),  # Convert the password to bytes
@@ -501,20 +501,18 @@ def register_new_admin():
         )
         storage = salt + key
         check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
-        if check_user_admin == None:
+        if check_user_admin is None:
             Admins.add_admin(admin_user_name, storage, db)
             # salt_from_storage = storage[:32]  # 32 is the length of the salt
             # key_from_storage = storage[32:]
             print(200)
             return Response('OK', status=200)
         else:
-            print(403)
+            print(409)
             return Response('Conflict', status=409)
 
 @app.route("/login_auth", methods=["GET"], strict_slashes=False)
 def login_auth():
-    # print(request.headers)
-
     admin_user_name = request.headers.get('Username')
     print('admin_user_name', admin_user_name)
     input_password = request.headers.get('Password')
@@ -525,26 +523,31 @@ def login_auth():
 
     if not admin_entry:
         print(401)
-        return Response('Unautorized', status=401)
+        return Response('Unauthorized', status=401)
 
     else:
-        print('blabla')
-        print('admin_entry.password', admin_entry.password)
         saved_password = admin_entry.password
         print('saved_password', saved_password)
 
         salt_from_storage = saved_password[:32]  # 32 is the length of the salt
-        key_from_storage = saved_password[32:]
+        key_from_storage = saved_password[33:]
+        print('key_from_storage', key_from_storage)
+        print('salt_from_storage', salt_from_storage)
 
         new_key = hashlib.pbkdf2_hmac(
             'sha256',
             input_password.encode('utf-8'),  # Convert the password to bytes
-            salt_from_storage,
-            100000
+            salt_from_storage.encode('utf-8'),
+            100000,
+            dklen=128  # Get a 128 byte key
         )
-        if new_key == key_from_storage:
+        print('new_key', new_key)
+        encoded_key_from_storage = key_from_storage.encode('utf-8')
+        print('encoded_key_from_storage', encoded_key_from_storage)
+
+        if new_key == encoded_key_from_storage:
             print(200)
-            return Response('OK', status=200)
+            return Response('blaOKbla', status=200)
         else:
             print(403)
             return Response('Conflict', status=409)
