@@ -72,12 +72,12 @@ def poll(update: Update, context: CallbackContext) -> None:
     #     .filter(app.Polls.poll_id == poll_id_) \
     #     .update({app.Questions.telegram_question_id: telegram_id})
     # app.db.session.commit()
-    # data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
-    # url = 'http://127.0.0.1:5000/newpoll'
-    # response = requests.post(url, data)
+    data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
+    url = 'http://127.0.0.1:5000/newpoll'
+    response = requests.post(url, data)
 
-    params = {"poll_id": 10}
-    response = requests.get(url='http://127.0.0.1:5000/poll_results', params=params)
+    # params = {"poll_id": 10}
+    # response = requests.get(url='http://127.0.0.1:5000/poll_results', params=params)
 
 
 

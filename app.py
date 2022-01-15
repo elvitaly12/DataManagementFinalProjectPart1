@@ -21,7 +21,7 @@ Bot
 )
 import hashlib
 import os
-salt = os.urandom(32)   # store  this  , and do  not change it  hence we use it for all users
+
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
@@ -482,11 +482,11 @@ def activate_poll():
 def register_new_admin():
     if request.method == 'GET':
         admin_user_name = request.args['UserName']
-        admin_passworrd = request.args['Password']
+        admin_password = request.args['Password']
         salt = os.urandom(32)  # for each  user , we store differnt salt [:32]
         key = hashlib.pbkdf2_hmac(
             'sha256',  # The hash digest algorithm for HMAC
-            admin_passworrd.encode('utf-8'),  # Convert the password to bytes
+            admin_password.encode('utf-8'),  # Convert the password to bytes
             salt,  # Provide the salt
             100000,  # It is recommended to use at least 100,000 iterations of SHA-256
             dklen=128  # Get a 128 byte key
@@ -495,6 +495,35 @@ def register_new_admin():
         Admins.add_admin(admin_user_name,storage,db)
         # salt_from_storage = storage[:32]  # 32 is the length of the salt
         # key_from_storage = storage[32:]
+
+
+@app.route("/login_auth", methods=["GET"], strict_slashes=False)
+def login_auth():
+    admin_user_name = request.args['UserName']
+    input_password = request.args['Password']
+    saved_password = db.session.query(Admins).filter_by(
+        username=admin_user_name).first().password
+
+    salt_from_storage = saved_password[:32]  # 32 is the length of the salt
+    key_from_storage = saved_password[32:]
+
+    new_key = hashlib.pbkdf2_hmac(
+        'sha256',
+        input_password.encode('utf-8'),  # Convert the password to bytes
+        salt_from_storage,
+        100000
+    )
+
+    if new_key == key_from_storage:
+        return Response('login successfully', status=200)
+
+    else:
+        return Response('wrong authentication', status=500)
+
+
+
+
+
 
 
 @app.route('/poll_results', methods=['GET', 'POST']) # from ui recieve  poll_id
@@ -524,7 +553,7 @@ def poll_results():
         for answer in answers:
            answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
            # print("answer_count:", answer_count)
-           question_result += ":" + answer + " count: " + str(answer_count) +" "
+           question_result += "; " + answer + " count: " + str(answer_count)
            # print("poll_question:", poll_question)
         results.append(question_result)
     print(results)
