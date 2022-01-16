@@ -7,7 +7,7 @@ from sqlalchemy import ForeignKey
 from config import password
 from config import port
 from flask_migrate import Migrate
-
+from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 
 import telegram
@@ -22,8 +22,10 @@ from telegram import (
 Bot
 
 )
-import hashlib
-import os
+
+
+
+from flask import current_app, flash, jsonify, make_response, redirect, request, url_for
 
 import rncryptor
 app = Flask(__name__)
@@ -34,6 +36,7 @@ db = SQLAlchemy(app)
 migrate = Migrate(app, db, compare_type=True,)
 cors = CORS()
 cors.init_app(app)
+ma = Marshmallow(app)
 
 # FLASK_APP= 'app.py'
 # db.create_all()
@@ -225,6 +228,11 @@ class Admins(db.Model):
         db_input.session.delete(obj)
         db_input.session.commit()
 
+class AdminsSchema(ma.Schema):
+    class Meta:
+        fields = ('username','encrypted_data')
+admin_schema = AdminsSchema()
+admins_schema = AdminsSchema(many=True)
 
 class telegram_chat_id_map(db.Model):
     telegram_bot_id = db.Column(db.String(100), primary_key=True)
@@ -310,6 +318,12 @@ class Polls(db.Model):
         new_poll = Polls(poll_id,poll_questions)
         db_input.session.add(new_poll)
         db_input.session.commit()
+
+class PollsSchema(ma.Schema):
+    class Meta:
+        fields = ('poll_id','poll_questions')
+poll_schema =  PollsSchema()
+polls_schema =  PollsSchema(many=True)
 
 
 
@@ -538,7 +552,7 @@ def login_auth():
 
         if decrypted_data == input_password:
             print(200)
-            return Response('blaOKbla', status=200)
+            return Response('OK', status=200)
         else:
             print(403)
             return Response('Conflict', status=409)
@@ -551,36 +565,60 @@ def login_auth():
 
 @app.route('/poll_results', methods=['GET', 'POST']) # from ui recieve  poll_id
 def poll_results():
-    poll_id = request.args['poll_id']
+    poll_id = request.headers.get('Poll_id')
     # poll_questions = db.session.query(Polls.poll_questions).filter_by(poll_id=poll_id)
     poll_questions = db.session.query(Polls).filter_by(poll_id=poll_id).first().poll_questions
     poll_questions =poll_questions[2:-3].split(',')
-    # print("poll_questions:",poll_questions)
-    results =  []
-    for question in poll_questions:
-        question_result = ""
-        description = db.session.query(Questions).filter_by(
-            question_id=int(question)).first().description
 
-        # print("description:" , description)
-        jsonData = json.loads(description)
-        params = []  # params[0] = question , rest answers
-        for key in jsonData:
-            params.append(jsonData[key])
-        poll_question = params[0]
-        # print("poll_question:", poll_question)
-        answers = params[1:]
-        # print("answers:", answers)
-        question_result +=poll_question
-        # print("question_result:", question_result)
-        for answer in answers:
-           answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
-           # print("answer_count:", answer_count)
-           question_result += "; " + answer + " count: " + str(answer_count)
-           # print("poll_question:", poll_question)
-        results.append(question_result)
-    print(results)
+
+
+
+    # print("poll_questions:",poll_questions)
+    # results =  []
+    # for question in poll_questions:
+    #     question_result = ""
+    #     description = db.session.query(Questions).filter_by(
+    #         question_id=int(question)).first().description
+    #
+    #     # print("description:" , description)
+    #     jsonData = json.loads(description)
+    #     params = []  # params[0] = question , rest answers
+    #     for key in jsonData:
+    #         params.append(jsonData[key])
+    #     poll_question = params[0]
+    #     # print("poll_question:", poll_question)
+    #     answers = params[1:]
+    #     # print("answers:", answers)
+    #     question_result +=poll_question
+    #     # print("question_result:", question_result)
+    #     for answer in answers:
+    #        answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
+    #        # print("answer_count:", answer_count)
+    #        question_result += "; " + answer + " count: " + str(answer_count)
+    #        # print("poll_question:", poll_question)
+    #     results.append(question_result)
+    # print(results)
     return
+
+
+@app.route('/get_admins', methods=['GET', 'POST']) #
+def get_admins():
+    admins_user_name = db.session.query(Admins.username).all()
+    result = admins_schema.dump(admins_user_name)
+    print(result)
+    print("jsonify:", jsonify(result))
+    return jsonify(result)
+
+
+@app.route('/get_pools', methods=['GET', 'POST']) #
+def get_polls():
+    polls = db.session.query(Polls.poll_id).all()
+    result = polls_schema.dump(polls)
+    print(result)
+    print("jsonify:", jsonify(result))
+    return jsonify(result)
+
+
 
 @app.route('/')
 def hello_world():  # put application's code here

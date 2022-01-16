@@ -1,8 +1,7 @@
 
 Ofir:
-* implement login logic (check credentials in db)
-  and add_admin logic
-* design CreateNewPoll page (and move create polls to ui)
+
+* implement CreateNewPoll page (and move create polls to ui)
 * fix bug of form not empty
 
 Vitaly:
@@ -10,13 +9,10 @@ Vitaly:
 
 
 Misc:
-* find a way to work on the same DB (maybe migration?)
-* when sending a follow up poll, check if a user is active before sending him a poll.
 
 If there is more time:
 * add field isMultiple if the question is multiple answers or not ( in UI )
 * design more interesting pages
-* hide token
 
 
 
@@ -50,3 +46,6 @@ done:
 * understand how to communicate between UI and backend
 * test sending polls to multiple users.
 * change password to hash (update db and backend code) (tirgul 7)
+* implement login logic (check credentials in db)
+  and add_admin logic
+* when sending a follow up poll, check if a user is active before sending him a poll.
