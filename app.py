@@ -501,14 +501,16 @@ def register_new_admin():
         print('admin_user_name', admin_user_name)
         admin_password = request.headers.get('Password')
         print('admin_password', admin_password)
-        salt = os.urandom(32)  # for each user , we store differnt salt [:32]
-        key = hashlib.pbkdf2_hmac('sha256', password.encode('utf-8'), salt, 1000)
+
         check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
         if check_user_admin is None:
-            Admins.add_admin(admin_user_name, salt,key, db)
+            cryptor = rncryptor.RNCryptor()
+            encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
+            decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
+            Admins.add_admin(admin_user_name, decoded_data,db)
             # salt_from_storage = storage[:32]  # 32 is the length of the salt
             # key_from_storage = storage[32:]
-            print(200)
+
             return Response('OK', status=200)
         else:
             print(409)
