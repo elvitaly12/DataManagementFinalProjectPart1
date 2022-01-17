@@ -63,16 +63,16 @@ if __name__ == "__main__":
     # decrypted_data = rncryptor.decrypt(encrypted_data, password)
     # assert username == decrypted_data
 
-    # flask_thread = FlaskThread()
-    # flask_thread.start()
-    # bot_thread = TelegramThread()
-    # bot_thread.start()
+    flask_thread = FlaskThread()
+    flask_thread.start()
+    bot_thread = TelegramThread()
+    bot_thread.start()
 
 
 
 
 
-    db.session.commit()
+
 
 
 

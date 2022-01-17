@@ -583,8 +583,8 @@ def poll_questions_id():
     # print('my_dict' ,my_dict)
     return jsonify(my_dict)
 
-@app.route('/poll_results', methods=['GET', 'POST'])  # from ui recieve question_id
-def poll_results():
+@app.route('/new_poll_submitted', methods=['GET', 'POST'])  # from ui recieve question_id
+def new_poll_submitted():
     question_id = request.headers.get('Question_id')
     results = []
     question_result = ""
