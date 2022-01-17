@@ -344,6 +344,10 @@ class Questions(db.Model):
             .format(self.question_id, self.poll_name, self.question,self.answers,self.telegram_question_id)
 
     def AddPollQuestion( poll_name, question,answers,telegram_question_id, db_input):
+        print(poll_name)
+        print(question)
+        print(answers)
+        print(telegram_question_id)
         new_question = Questions(poll_name, question,answers,telegram_question_id)
         db_input.session.add(new_question)
         db_input.session.commit()
@@ -521,40 +525,82 @@ def activate_poll():
 # previous expected  {poll_id,expected_answers}
 def newpoll():
 
-    print( request.form.to_dict())
-    poll_name = request.headers.get('Poll_name')
-    body = request.form
-    # body = request.headers.get('body')  CHANGE TO THIS AFTER REACT WORK!!!
-    print(request.headers.get('body'))
+
+    poll_name = request.headers.get('poll_name')
+    # print("poll_name", poll_name)
+    # body = request.form
+    body = request.headers.get('body')
+
+
     poll_question_id  = ""
     expected_answers = ""
+    body = body[2:-2]
+    # print("body",body)
+    body_after_split = body.split(",")
+
+
+    answers = ""
+    answer3a = ""
+    answer4a = ""
+    filter_answer = "-1"
+
+
     try:
 
-        for json in body:
-            poll_question = json['question']
-            answer1 = json['answer1']
-            answer2 = json['answer2']
-            expected_answer = json['filter_answer']
-            answer3 = ""
-            answer4  = ""
-            if  "answer3" in json:
-                answer3 = json['answer3']
-            if "answer4" in json:
-                answer4= json['answer4']
-
-            if answer3 == "":
-                answers =  {"answer1":answer1 , "answer2":answer2}
-
-            elif answer3 != "" and answer4 == "":
-                answers =  {"answer1":answer1 , "answer2":answer2 ,"answer3":answer3}
-
+        dict = {}
+        for iter  in body_after_split:
+            iter = iter.replace("{", "")
+            iter = iter.replace("}", "")
+            key = iter.split(":")[0][1:-1]
+            if key == 'answers_counter':
+                value = iter.split(":")[1]
             else:
-                answers =  {"answer1":answer1 , "answer2":answer2 ,"answer3":answer3,"answer4":answer4}
+                value = iter.split(":")[1][1:-1]
+            print(key)
+            print(value)
+            dict[key] = value
 
-            Questions.AddPollQuestion(poll_name, poll_question, answers, "will_changed", db)
-            question_id =  db.session.query(Questions).filter_by(poll_name=poll_name , question = poll_question).first().question_id
-            poll_question_id += "," + str(question_id)
-            expected_answers += "," + expected_answer
+            if key == 'filter_answer':
+                filter_answer = value
+
+            if key == 'answers_counter':
+                print()
+                print(dict)
+                if value == "2":
+                    answers += dict['answer1']+","+dict['answer2']
+                    if filter_answer == "1":
+                        expected_answers += dict['answer1'] + ","
+                    elif filter_answer == "2":
+                        expected_answers += dict['answer2'] + ","
+
+                elif value == "3":
+                    answers += dict['answer1'] + "," + dict['answer2'] + "," + dict['answer3']
+                    if filter_answer == "1":
+                        expected_answers += dict['answer1'] + ","
+                    elif filter_answer == "2":
+                        expected_answers += dict['answer2'] + ","
+                    elif filter_answer == "3":
+                        expected_answers += dict['answer3'] + ","
+                elif value == "4":
+                    # print(dict['answer1'])
+                    # print(dict['answer2'])
+                    # print(dict['answer3'])
+                    # print(dict['answer4'])
+
+                    answers += dict['answer1'] + "," + dict['answer2'] + "," + dict['answer3']+"," +dict['answer4']
+                    if filter_answer == "1":
+                        expected_answers += dict['answer1'] + ","
+                    elif filter_answer == "2":
+                        expected_answers += dict['answer2'] + ","
+                    elif filter_answer == "3":
+                        expected_answers += dict['answer3'] + ","
+                    elif filter_answer == "4":
+                        expected_answers += dict['answer4'] + ","
+                Questions.AddPollQuestion(poll_name, dict['question'], answers, "will_changed", db)
+                question_id = db.session.query(Questions).filter_by(poll_name=poll_name,
+                                                                    question=dict['question']).first().question_id
+                poll_question_id += str(question_id) + ","
+
 
         Polls.addPoll(poll_name,poll_question_id,expected_answers,db)
     except:
@@ -627,12 +673,17 @@ def login_auth():
 
 
 
-@app.route('/poll_questions_id', methods=['GET', 'POST']) # from ui recieve  poll_name return all question
-def poll_questions_id():
-    Poll_name = request.headers.get('Poll_name')
+@app.route('/poll_questions', methods=['GET', 'POST']) # from ui recieve  poll_name return all question
+def poll_questions():
+    Poll_name = request.headers.get('poll_name')
     my_dict = dict()
-    poll_questions = db.session.query(Polls.question).filter_by(poll_name=Poll_name).all()
-    result = questions_schema.dump(poll_questions)
+    poll_questions = db.session.query(Polls.poll_questions).filter_by(poll_name=Poll_name).all()
+    poll_questions =  poll_questions.split(",")
+    question = []
+    for question_id in poll_questions:
+        poll_questions = db.session.query(Questions).filter_by(question_id=question_id).first().question
+        question.append(poll_questions)
+    result = questions_schema.dump(question)
     print(result)
     print("jsonify:", jsonify(result))
     return jsonify(result)
