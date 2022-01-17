@@ -66,20 +66,14 @@ def sendpoll_to_users(users,question,answers,question_id,expected_answer):
 
 
 
-def send_first_question_in_poll(question_id,expected_answers):
+def send_first_question_in_poll(question_id,expected_answer):
     # print("inside poll: " ,question_id)
-    description = db.session.query(Questions).filter_by(
-        question_id=int(question_id)).first().description
+    question = db.session.query(Questions).filter_by(
+        question_id=int(question_id)).first().question
 
-    # print("description:" , description)
-    jsonData = json.loads(description)
-    params = []  # params[0] = question , rest answers
-    for key in jsonData:
-        params.append(jsonData[key])
-    poll_question = params[0]
-    answers = params[1:]
-    # print("poll_question:", poll_question)
-    # print("answers:", answers)
+    answers = db.session.query(Questions).filter_by(
+        question_id=int(question_id)).first().answers
+    answers = answers.split(",")
     chat_ids =  db.session.query(Users.chat_id).filter_by(
         active=True).all()
     result_dict = map(lambda q: q._asdict(), chat_ids)
@@ -87,7 +81,7 @@ def send_first_question_in_poll(question_id,expected_answers):
         # print(user_chat_id)
         message = bot.send_poll(
             user_chat_id['chat_id'],
-            poll_question,
+            question,
             answers,
             is_anonymous=False,
             allows_multiple_answers=False,
@@ -99,7 +93,7 @@ def send_first_question_in_poll(question_id,expected_answers):
         telegram_bot_id = message.poll.id
         # print("telegram_bot_id:" , telegram_bot_id)
         # print("user_chat_id['chat_id']:", user_chat_id['chat_id'])
-        telegram_chat_id_map.add_new_map(str(telegram_bot_id), str(user_chat_id['chat_id']),int(question_id),expected_answers, db)
+        telegram_chat_id_map.add_new_map(str(telegram_bot_id), str(user_chat_id['chat_id']),int(question_id),expected_answer, db)
 
 
 
@@ -302,28 +296,29 @@ class Polls(db.Model):
     # poll_name = db.Column(db.String,nullable=False)
     # poll_telegram_id = db.Column(db.Integer, nullable=True)
     poll_questions = db.Column(db.String(300),nullable=True)  # {1,2,12,34,12} #num =question_id
+    expected_answers = db.Column(db.String(300), nullable=True)
 
-    def __init__(self,poll_name,poll_questions):
+    def __init__(self,poll_name,poll_questions,expected_answers):
+          self.poll_name = poll_name
+          self.poll_questions = poll_questions
+          self.expected_answers = expected_answers
 
-         # self.poll_telegram_id = poll_telegram_id
-         self.poll_questions = poll_questions
-         self.poll_name = poll_name
 
 
 
     def __repr__(self):
-        return "<Polls(poll_id={},poll_name='{}' ,poll_questions='{}')>" \
-            .format(self.poll_id,self.poll_name ,self.poll_questions)
+        return "<Polls(poll_id={},poll_name='{}' ,poll_questions='{}',expected_answers='{}')>" \
+            .format(self.poll_id,self.poll_name ,self.poll_questions,self.expected_answers)
 
 
-    def addPoll(poll_questions,poll_name,db_input):
-        new_poll = Polls(poll_questions,poll_name)
+    def addPoll(poll_questions,poll_name,expected_answers,db_input):
+        new_poll = Polls(poll_questions,poll_name,expected_answers)
         db_input.session.add(new_poll)
         db_input.session.commit()
 
 class PollsSchema(ma.Schema):
     class Meta:
-        fields = ('poll_id','poll_questions')
+        fields = ('poll_id','poll_name','poll_questions')
 poll_schema =  PollsSchema()
 polls_schema =  PollsSchema(many=True)
 
@@ -331,30 +326,37 @@ polls_schema =  PollsSchema(many=True)
 
 class Questions(db.Model):
     question_id = db.Column(db.Integer, primary_key=True)
-    poll_id = db.Column(db.Integer, nullable=False)
-    description = db.Column(db.String(300), nullable=False)
+    poll_name = db.Column(db.String, nullable=True)
+    question =  db.Column(db.String(300), nullable=False)
+    answers =   db.Column(db.String(300), nullable=False)
     telegram_question_id = db.Column(db.String(50), primary_key=False)   # too many chars for integer
 
 
-    def __init__(self,  poll_id, description,telegram_question_id):
+    def __init__(self,  poll_name, question,answers,telegram_question_id):
 
-        self.poll_id = poll_id
-        self.description = description
+        self.poll_name = poll_name
+        self.question = question
+        self.answers = answers
         self.telegram_question_id = telegram_question_id
 
     def __repr__(self):
-        return "<Questions(question_id={},poll_id={}, description='{}', telegram_question_id='{}')>" \
-            .format(self.question_id, self.poll_id, self.description,self.telegram_question_id)
+        return "<Questions(question_id={},poll_name='{}', question='{}',answers='{}', telegram_question_id='{}')>" \
+            .format(self.question_id, self.poll_name, self.question,self.answers,self.telegram_question_id)
 
-    def AddPollQuestion( poll_id, description,telegram_question_id, db_input):
-        new_question = Questions(poll_id, description,telegram_question_id)
+    def AddPollQuestion( poll_name, question,answers,telegram_question_id, db_input):
+        new_question = Questions(poll_name, question,answers,telegram_question_id)
         db_input.session.add(new_question)
         db_input.session.commit()
 
-    def GetQuestionByPollId(poll_id_, db_input):
-       return  db_input.session.query(Users).filter_by(poll_id=poll_id_).first().description
+    def GetQuestionByPollname(poll_name, db_input):
+       return  db_input.session.query(Users).filter_by(poll_name=poll_name).first().description
 
+class QuestionsSchema(ma.Schema):
+    class Meta:
+        fields = ('question_id', 'poll_name', 'question','answers','telegram_question_id')
 
+question_schema = QuestionsSchema()
+questions_schema = QuestionsSchema(many=True)
 
 
 
@@ -484,29 +486,84 @@ def unregister_HTTP_request():
     #          return render_template('login.html', error=error)
 
 
-@app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
+
+@app.route('/activate_poll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
 # previous expected  {poll_id,expected_answers}
 def activate_poll():
-    if request.method == 'POST':
-        params = []
-        inpud_dict = request.form.to_dict()
-        for key in inpud_dict:
-            params.append(inpud_dict[key])
-        poll_id = params[0]
-        expected_answers_by_admin = params[1:] # already know the question by  poll_id
+        poll_name = request.headers.get('poll_name')
         poll_questions = db.session.query(Polls).filter_by(
-            poll_id=poll_id).first().poll_questions  # {1,32,545,323,543}
+            poll_name=poll_name).first().poll_questions  # {1,32,545,323,543}
+        poll_id = db.session.query(Polls).filter_by(
+            poll_name=poll_name).first().poll_id  # {1,32,545,323,543}
+
+        expected_answers = db.session.query(Polls).filter_by(
+            poll_name=poll_name).first().expected_answers  # {1,32,545,323,543}
+        expected_answers = expected_answers.split(",")
         poll_questions = poll_questions[2:-2]
         question_ids = poll_questions.split(",")
-        send_first_question_in_poll(question_ids[0],expected_answers_by_admin[0])
+        send_first_question_in_poll(question_ids[0], expected_answers[0])
 
         expected_Answers = ""
-        for answer in expected_answers_by_admin:
+        for answer in expected_answers:
             expected_Answers += answer + ","
 
         poll_id_in_map = db.session.query(MapPollIdExpectedAnswers).filter_by(poll_id=poll_id).first()
-        if poll_id_in_map==None:
+        if poll_id_in_map == None:
             MapPollIdExpectedAnswers.add_new_map_Poll_expected_asnwers(poll_id, expected_Answers, db)
+
+
+
+
+
+
+@app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
+# previous expected  {poll_id,expected_answers}
+def newpoll():
+    poll_name = request.headers.get('poll_name')
+    body = request.headers.get('body')
+    poll_question_id  = ""
+    expected_answers = ""
+    try:
+
+        for json in body:
+            poll_question = json['question']
+            answer1 = json['answer1']
+            answer2 = json['answer2']
+            expected_answer = json['filter_answer']
+            answer3 = ""
+            answer4  = ""
+            if  "answer3" in json:
+                answer3 = json['answer3']
+            if "answer4" in json:
+                answer4= json['answer4']
+
+            if answer3 == "":
+                answers =  {"answer1":answer1 , "answer2":answer2}
+
+            elif answer3 != "" and answer4 == "":
+                answers =  {"answer1":answer1 , "answer2":answer2 ,"answer3":answer3}
+
+            else:
+                answers =  {"answer1":answer1 , "answer2":answer2 ,"answer3":answer3,"answer4":answer4}
+
+            Questions.AddPollQuestion(poll_name, poll_question, answers, "will_changed", db)
+            question_id =  db.session.query(Questions).filter_by(poll_name=poll_name , question = poll_question).first().question_id
+            poll_question_id += "," + str(question_id)
+            expected_answers += "," + expected_answer
+
+        Polls.addPoll(poll_name,poll_question_id,expected_answers,db)
+    except:
+        return Response('Internal Error', status=500)
+
+    return Response('OK', status=200)
+
+
+
+
+
+
+
+
 
 
 
@@ -565,65 +622,20 @@ def login_auth():
 
 
 
-@app.route('/poll_questions_id', methods=['GET', 'POST']) # from ui recieve  poll_id
+@app.route('/poll_questions_id', methods=['GET', 'POST']) # from ui recieve  poll_name return all question
 def poll_questions_id():
-    poll_id = request.headers.get('Poll_id')
+    Poll_name = request.headers.get('Poll_name')
     my_dict = dict()
-    # poll_questions = db.session.query(Polls.poll_questions).filter_by(poll_id=poll_id)
-    poll_questions = db.session.query(Polls).filter_by(poll_id=poll_id).first().poll_questions
-    poll_questions =poll_questions[2:-3].split(',')
-    for index, value in enumerate(poll_questions):
-        description = db.session.query(Questions).filter_by(
-            question_id=int(value)).first().description
-
-        # print("description:" , description)
-        jsonData = json.loads(description)
-        params = []  # params[0] = question , rest answers
-        for key in jsonData:
-            params.append(jsonData[key])
-        poll_question = params[0]
-        my_dict[index] = poll_question
-    # print('my_dict' ,my_dict)
-    return jsonify(my_dict)
-
-@app.route('/get_Question_send_answer', methods=['GET', 'POST'])  # from ui recieve question_id
-def get_Question_send_answer():
-    question_id = request.headers.get('Question_id')
-    results = []
-    question_result = ""
-    my_dict = dict()
-    description = db.session.query(Questions).filter_by(
-        question_id=int(question_id)).first().description
-
-    # print("description:" , description)
-    jsonData = json.loads(description)
-    params = []  # params[0] = question , rest answers
-    for key in jsonData:
-        params.append(jsonData[key])
-    poll_question = params[0]
-    answers = params[1:]
-    print("question_result:", question_result)
-    for answer in answers:
-       answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
-       my_dict[answer] = answer_count
-
-    print(my_dict)
-    return jsonify(my_dict)
-
-
-
-
-
-
-
-
-
-    # print("poll_questions:",poll_questions)
-    # results =  []
-    # for question in poll_questions:
-    #     question_result = ""
+    poll_questions = db.session.query(Polls.question).filter_by(poll_name=Poll_name).all()
+    result = questions_schema.dump(poll_questions)
+    print(result)
+    print("jsonify:", jsonify(result))
+    return jsonify(result)
+    # poll_questions = db.session.query(Polls).filter_by(poll_name=Poll_name).first().poll_questions
+    # poll_questions =poll_questions[2:-3].split(',')
+    # for index, value in enumerate(poll_questions):
     #     description = db.session.query(Questions).filter_by(
-    #         question_id=int(question)).first().description
+    #         question_id=int(value)).first().description
     #
     #     # print("description:" , description)
     #     jsonData = json.loads(description)
@@ -631,19 +643,30 @@ def get_Question_send_answer():
     #     for key in jsonData:
     #         params.append(jsonData[key])
     #     poll_question = params[0]
-    #     # print("poll_question:", poll_question)
-    #     answers = params[1:]
-    #     # print("answers:", answers)
-    #     question_result +=poll_question
-    #     # print("question_result:", question_result)
-    #     for answer in answers:
-    #        answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
-    #        # print("answer_count:", answer_count)
-    #        question_result += "; " + answer + " count: " + str(answer_count)
-    #        # print("poll_question:", poll_question)
-    #     results.append(question_result)
-    # print(results)
-    return
+    #     my_dict[index] = poll_question
+    # # print('my_dict' ,my_dict)
+
+
+@app.route('/get_Question_send_answer', methods=['GET', 'POST'])  # from ui recieve question_name and poll_name return all answers
+def get_Question_send_answer():
+    Question_name = request.headers.get('Question_name')
+    poll_name = request.headers.get('Poll_name')
+    results = []
+    question_result = ""
+    my_dict = dict()
+    answers = db.session.query(Questions).filter_by(
+        question=Question_name , poll_name=poll_name).first().answers
+
+    answers_parsed = []
+    for key in answers:
+        answers_parsed.append(answers[key])
+    for answer in answers_parsed:
+       answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
+       my_dict[answer] = answer_count
+    print(my_dict)
+    return jsonify(my_dict)
+
+
 
 
 @app.route('/get_admins', methods=['GET', 'POST']) #
@@ -657,7 +680,8 @@ def get_admins():
 
 @app.route('/get_pools', methods=['GET', 'POST']) #
 def get_polls():
-    polls = db.session.query(Polls.poll_id).all()
+    polls = db.session.query(Polls.poll_name).all()
+    print("polls are:" ,polls)
     result = polls_schema.dump(polls)
     print(result)
     print("jsonify:", jsonify(result))
