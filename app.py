@@ -490,37 +490,42 @@ def unregister_HTTP_request():
 @app.route('/activate_poll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
 # previous expected  {poll_id,expected_answers}
 def activate_poll():
-        poll_name = request.headers.get('poll_name')
-        poll_questions = db.session.query(Polls).filter_by(
-            poll_name=poll_name).first().poll_questions  # {1,32,545,323,543}
-        poll_id = db.session.query(Polls).filter_by(
-            poll_name=poll_name).first().poll_id  # {1,32,545,323,543}
+        try:
+            poll_name = request.headers.get('poll_name')
+            poll_questions = db.session.query(Polls).filter_by(
+                poll_name=poll_name).first().poll_questions  # {1,32,545,323,543}
+            poll_id = db.session.query(Polls).filter_by(
+                poll_name=poll_name).first().poll_id  # {1,32,545,323,543}
 
-        expected_answers = db.session.query(Polls).filter_by(
-            poll_name=poll_name).first().expected_answers  # {1,32,545,323,543}
-        expected_answers = expected_answers.split(",")
-        poll_questions = poll_questions[2:-2]
-        question_ids = poll_questions.split(",")
-        send_first_question_in_poll(question_ids[0], expected_answers[0])
+            expected_answers = db.session.query(Polls).filter_by(
+                poll_name=poll_name).first().expected_answers  # {1,32,545,323,543}
+            expected_answers = expected_answers.split(",")
+            poll_questions = poll_questions[2:-2]
+            question_ids = poll_questions.split(",")
+            send_first_question_in_poll(question_ids[0], expected_answers[0])
 
-        expected_Answers = ""
-        for answer in expected_answers:
-            expected_Answers += answer + ","
+            expected_Answers = ""
+            for answer in expected_answers:
+                expected_Answers += answer + ","
 
-        poll_id_in_map = db.session.query(MapPollIdExpectedAnswers).filter_by(poll_id=poll_id).first()
-        if poll_id_in_map == None:
-            MapPollIdExpectedAnswers.add_new_map_Poll_expected_asnwers(poll_id, expected_Answers, db)
+            poll_id_in_map = db.session.query(MapPollIdExpectedAnswers).filter_by(poll_id=poll_id).first()
+            if poll_id_in_map == None:
+                MapPollIdExpectedAnswers.add_new_map_Poll_expected_asnwers(poll_id, expected_Answers, db)
+        except:
+            return Response('Internal Error', status=500)
 
-
-
-
+        return Response('OK', status=200)
 
 
 @app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
 # previous expected  {poll_id,expected_answers}
 def newpoll():
-    poll_name = request.headers.get('poll_name')
-    body = request.headers.get('body')
+
+    print( request.form.to_dict())
+    poll_name = request.headers.get('Poll_name')
+    body = request.form
+    # body = request.headers.get('body')  CHANGE TO THIS AFTER REACT WORK!!!
+    print(request.headers.get('body'))
     poll_question_id  = ""
     expected_answers = ""
     try:

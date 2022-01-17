@@ -72,9 +72,16 @@ def poll(update: Update, context: CallbackContext) -> None:
     #     .filter(app.Polls.poll_id == poll_id_) \
     #     .update({app.Questions.telegram_question_id: telegram_id})
     # app.db.session.commit()
-    data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
+
+
+    json2 = {"question": "how much money do u  want to make?", "answer1": "1M", "answer2": "500", "answer3": "100B",
+             "filter_answer": "100B"}
+    json1 = {"question":"how much money do u make?" ,"answer1":"10k" , "answer2":"30k","answer3":"fuck off","filter_answer": "fuck off"}
+    # data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
+    headers_dict = {"Poll_name": "salary"}
+    data = {"question":"how much money do u make?" ,"answer1":"10k" , "answer2":"30k","answer3":"fuck off","filter_answer": "fuck off"}
     url = 'http://127.0.0.1:5000/newpoll'
-    response = requests.post(url, data)
+    response = requests.post(url, data ,  headers=headers_dict)
 
     # params = {"poll_id": 10}
     # response = requests.get(url='http://127.0.0.1:5000/poll_results', params=params)

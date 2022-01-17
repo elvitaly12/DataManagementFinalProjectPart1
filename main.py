@@ -53,10 +53,7 @@ if __name__ == "__main__":
     # # Admins.Delete_Admin("vitaly", db)
     # Admins.add_admin(username,encoded_data,db)
 
-   poll =  [{"question":"test question","answer1":"test ans1","answer2":"test ans2","filter_answer":"1"},{"question":"question2","answer1":"2_answer1","answer2":"3_answer2","answer3":"ans3","answer4":"test ans4","filter_answer":"4"}]#
-   for json in poll:
-       b_in_dict =  "answer3" in json
-       print(b_in_dict)
+
 
 
 
@@ -69,10 +66,13 @@ if __name__ == "__main__":
     # decrypted_data = rncryptor.decrypt(encrypted_data, password)
     # assert username == decrypted_data
     #
-    # flask_thread = FlaskThread()
-    # flask_thread.start()
-    # bot_thread = TelegramThread()
-    # bot_thread.start()
+    flask_thread = FlaskThread()
+    flask_thread.start()
+    bot_thread = TelegramThread()
+    bot_thread.start()
+
+
+
 
     # Polls.addPoll( "grades", '1,2,3',db)
     # Polls.addPoll("salary", '1,2,3',db)
