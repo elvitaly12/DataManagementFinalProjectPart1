@@ -515,10 +515,11 @@ def activate_poll():
             poll_id_in_map = db.session.query(MapPollIdExpectedAnswers).filter_by(poll_id=poll_id).first()
             if poll_id_in_map == None:
                 MapPollIdExpectedAnswers.add_new_map_Poll_expected_asnwers(poll_id, expected_Answers, db)
+            return Response('OK', status=200)
         except:
             return Response('Internal Error', status=500)
 
-        return Response('OK', status=200)
+
 
 
 @app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
@@ -677,16 +678,22 @@ def login_auth():
 def poll_questions():
     Poll_name = request.headers.get('poll_name')
     my_dict = dict()
-    poll_questions = db.session.query(Polls.poll_questions).filter_by(poll_name=Poll_name).all()
-    poll_questions =  poll_questions.split(",")
-    question = []
+    entry = db.session.query(Polls.poll_questions).filter_by(poll_name=Poll_name).first()
+    poll_questions = entry.poll_questions.split(",")
+    # print('poll_questions_ids: ', poll_questions)
+    question_names = []
+    poll_questions = poll_questions[:-1]
+    # print('poll_questions_ids: ', poll_questions)
+
     for question_id in poll_questions:
-        poll_questions = db.session.query(Questions).filter_by(question_id=question_id).first().question
-        question.append(poll_questions)
-    result = questions_schema.dump(question)
-    print(result)
-    print("jsonify:", jsonify(result))
-    return jsonify(result)
+        question_name = db.session.query(Questions).filter_by(question_id=question_id).first().question
+        # print('question_name', question_name)
+        question_names.append(question_name)
+    # print('question_names', question_names)
+    # result = questions_schema.dump(question_names)
+    # print(result)
+    # print("jsonify:", jsonify(question_names))
+    return jsonify(question_names)
     # poll_questions = db.session.query(Polls).filter_by(poll_name=Poll_name).first().poll_questions
     # poll_questions =poll_questions[2:-3].split(',')
     # for index, value in enumerate(poll_questions):
