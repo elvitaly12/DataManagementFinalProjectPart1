@@ -302,8 +302,8 @@ class Polls(db.Model):
     # poll_telegram_id = db.Column(db.Integer, nullable=True)
     poll_questions = db.Column(db.String(300),nullable=True)  # {1,2,12,34,12} #num =question_id
 
-    def __init__(self, poll_id,poll_questions):
-         self.poll_id = poll_id
+    def __init__(self,poll_questions):
+
          # self.poll_telegram_id = poll_telegram_id
          self.poll_questions = poll_questions
 
@@ -314,8 +314,8 @@ class Polls(db.Model):
             .format(self.poll_id, self.poll_questions)
 
 
-    def addPoll(poll_id,poll_questions,db_input):
-        new_poll = Polls(poll_id,poll_questions)
+    def addPoll(poll_questions,db_input):
+        new_poll = Polls(poll_questions)
         db_input.session.add(new_poll)
         db_input.session.commit()
 
@@ -329,14 +329,13 @@ polls_schema =  PollsSchema(many=True)
 
 class Questions(db.Model):
     question_id = db.Column(db.Integer, primary_key=True)
-    poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), nullable=False)
-    # description = db.Column(db.String(300), nullable=False)
+    poll_id = db.Column(db.Integer, nullable=False)
     description = db.Column(db.String(300), nullable=False)
     telegram_question_id = db.Column(db.String(50), primary_key=False)   # too many chars for integer
 
 
-    def __init__(self, question_id, poll_id, description,telegram_question_id):
-        self.question_id = question_id
+    def __init__(self,  poll_id, description,telegram_question_id):
+
         self.poll_id = poll_id
         self.description = description
         self.telegram_question_id = telegram_question_id
@@ -345,8 +344,8 @@ class Questions(db.Model):
         return "<Questions(question_id={},poll_id={}, description='{}', telegram_question_id='{}')>" \
             .format(self.question_id, self.poll_id, self.description,self.telegram_question_id)
 
-    def AddPollQuestion(question_id, poll_id, description,telegram_question_id, db_input):
-        new_question = Questions(question_id, poll_id, description,telegram_question_id)
+    def AddPollQuestion( poll_id, description,telegram_question_id, db_input):
+        new_question = Questions(poll_id, description,telegram_question_id)
         db_input.session.add(new_question)
         db_input.session.commit()
 
@@ -375,7 +374,7 @@ class Answers(db.Model):
 
 class PollsAnswers(db.Model):
     chat_id = db.Column(db.Integer, primary_key=True)
-    poll_id = db.Column(db.Integer, ForeignKey('polls.poll_id'), primary_key=True)
+    poll_id = db.Column(db.Integer,  primary_key=True)
     telegram_question_id = db.Column(db.String(100),primary_key=True)
     question_id = db.Column(db.Integer, primary_key=False)
     poll_question = db.Column(db.String, nullable=False)
@@ -538,10 +537,10 @@ def login_auth():
 
     admin_entry = db.session.query(Admins).filter_by(
         username=admin_user_name).first()
-    print('admin_entry', admin_entry)
+    # print('admin_entry', admin_entry)
 
     if not admin_entry:
-        print(401)
+        # print(401)
         return Response('Unauthorized', status=401)
 
     else:
@@ -551,10 +550,10 @@ def login_auth():
         decrypted_data = cryptor.decrypt(encoded_data, admin_user_name)
 
         if decrypted_data == input_password:
-            print(200)
+            # print(200)
             return Response('OK', status=200)
         else:
-            print(403)
+            # print(403)
             return Response('Conflict', status=409)
 
 
@@ -563,12 +562,55 @@ def login_auth():
 
 
 
-@app.route('/poll_results', methods=['GET', 'POST']) # from ui recieve  poll_id
-def poll_results():
+@app.route('/poll_questions_id', methods=['GET', 'POST']) # from ui recieve  poll_id
+def poll_questions_id():
     poll_id = request.headers.get('Poll_id')
+    my_dict = dict()
     # poll_questions = db.session.query(Polls.poll_questions).filter_by(poll_id=poll_id)
     poll_questions = db.session.query(Polls).filter_by(poll_id=poll_id).first().poll_questions
     poll_questions =poll_questions[2:-3].split(',')
+    for index, value in enumerate(poll_questions):
+        description = db.session.query(Questions).filter_by(
+            question_id=int(value)).first().description
+
+        # print("description:" , description)
+        jsonData = json.loads(description)
+        params = []  # params[0] = question , rest answers
+        for key in jsonData:
+            params.append(jsonData[key])
+        poll_question = params[0]
+        my_dict[index] = poll_question
+    # print('my_dict' ,my_dict)
+    return jsonify(my_dict)
+
+@app.route('/poll_results', methods=['GET', 'POST'])  # from ui recieve question_id
+def poll_results():
+    question_id = request.headers.get('Question_id')
+    results = []
+    question_result = ""
+    my_dict = dict()
+    description = db.session.query(Questions).filter_by(
+        question_id=int(question_id)).first().description
+
+    # print("description:" , description)
+    jsonData = json.loads(description)
+    params = []  # params[0] = question , rest answers
+    for key in jsonData:
+        params.append(jsonData[key])
+    poll_question = params[0]
+    answers = params[1:]
+    print("question_result:", question_result)
+    for answer in answers:
+       answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
+       my_dict[answer] = answer_count
+
+    print(my_dict)
+    return jsonify(my_dict)
+
+
+
+
+
 
 
 
@@ -605,8 +647,8 @@ def poll_results():
 def get_admins():
     admins_user_name = db.session.query(Admins.username).all()
     result = admins_schema.dump(admins_user_name)
-    print(result)
-    print("jsonify:", jsonify(result))
+    # print(result)
+    # print("jsonify:", jsonify(result))
     return jsonify(result)
 
 

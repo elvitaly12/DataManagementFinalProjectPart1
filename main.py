@@ -45,8 +45,6 @@ import rncryptor
 
 
 if __name__ == "__main__":
-    username = 'vitaly'
-    password = '123456'
 
     # # rncryptor.RNCryptor's methods
     # cryptor = rncryptor.RNCryptor()
@@ -57,23 +55,24 @@ if __name__ == "__main__":
 
 
 
-    # Admins.add_admin(username,encrypted_data)
 
+    # Admins.add_admin(username,encrypted_data)
 
     # # rncryptor's functions
     # encrypted_data = rncryptor.encrypt(username, password)
     # decrypted_data = rncryptor.decrypt(encrypted_data, password)
     # assert username == decrypted_data
 
+    # flask_thread = FlaskThread()
+    # flask_thread.start()
+    # bot_thread = TelegramThread()
+    # bot_thread.start()
 
 
-    flask_thread = FlaskThread()
-    flask_thread.start()
-    bot_thread = TelegramThread()
-    bot_thread.start()
 
 
 
+    db.session.commit()
 
 
 
@@ -97,8 +96,7 @@ if __name__ == "__main__":
     # PollsAnswers.addPollAnswer(1, 10, 1111, "where do u study?", "technion", 11, db)
     # PollsAnswers.addPollAnswer(2, 10, 1112, "where do u study?", "tel-aviv", 11, db)
     #
-    # db.session.query(Admins).delete()
-    # db.session.commit()
+
 
 
 
@@ -130,6 +128,11 @@ if __name__ == "__main__":
 
 
 
+    # db.session.query(telegram_chat_id_map).delete()
+    # db.session.query(MapPollIdExpectedAnswers).delete()
+    # db.session.query(PollsAnswers).delete()
+    # db.session.query(Questions).delete()
+    # db.session.query(Polls).delete()
 
 
 
