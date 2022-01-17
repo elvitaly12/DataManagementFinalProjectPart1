@@ -62,7 +62,7 @@ if __name__ == "__main__":
     # encrypted_data = rncryptor.encrypt(username, password)
     # decrypted_data = rncryptor.decrypt(encrypted_data, password)
     # assert username == decrypted_data
-
+    #
     flask_thread = FlaskThread()
     flask_thread.start()
     bot_thread = TelegramThread()
@@ -133,6 +133,7 @@ if __name__ == "__main__":
     # db.session.query(PollsAnswers).delete()
     # db.session.query(Questions).delete()
     # db.session.query(Polls).delete()
+    # db.session.commit()
 
 
 

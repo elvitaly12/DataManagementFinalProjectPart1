@@ -298,24 +298,26 @@ class MapPollIdExpectedAnswers(db.Model):
 
 class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
+    poll_name = db.Column(db.String, primary_key=True)
     # poll_name = db.Column(db.String,nullable=False)
     # poll_telegram_id = db.Column(db.Integer, nullable=True)
     poll_questions = db.Column(db.String(300),nullable=True)  # {1,2,12,34,12} #num =question_id
 
-    def __init__(self,poll_questions):
+    def __init__(self,poll_name,poll_questions):
 
          # self.poll_telegram_id = poll_telegram_id
          self.poll_questions = poll_questions
+         self.poll_name = poll_name
 
 
 
     def __repr__(self):
-        return "<Polls(poll_id={}, poll_questions='{}')>" \
-            .format(self.poll_id, self.poll_questions)
+        return "<Polls(poll_id={},poll_name='{}' ,poll_questions='{}')>" \
+            .format(self.poll_id,self.poll_name ,self.poll_questions)
 
 
-    def addPoll(poll_questions,db_input):
-        new_poll = Polls(poll_questions)
+    def addPoll(poll_questions,poll_name,db_input):
+        new_poll = Polls(poll_questions,poll_name)
         db_input.session.add(new_poll)
         db_input.session.commit()
 
@@ -482,7 +484,8 @@ def unregister_HTTP_request():
     #          return render_template('login.html', error=error)
 
 
-@app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : {12,"technion","cs","compilation","75"}
+@app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
+# previous expected  {poll_id,expected_answers}
 def activate_poll():
     if request.method == 'POST':
         params = []
@@ -583,8 +586,8 @@ def poll_questions_id():
     # print('my_dict' ,my_dict)
     return jsonify(my_dict)
 
-@app.route('/new_poll_submitted', methods=['GET', 'POST'])  # from ui recieve question_id
-def new_poll_submitted():
+@app.route('/get_Question_send_answer', methods=['GET', 'POST'])  # from ui recieve question_id
+def get_Question_send_answer():
     question_id = request.headers.get('Question_id')
     results = []
     question_result = ""
