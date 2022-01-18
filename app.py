@@ -495,6 +495,7 @@ def unregister_HTTP_request():
 # previous expected  {poll_id,expected_answers}
 def activate_poll():
         try:
+            print("are we here? activate_poll")
             poll_name = request.headers.get('poll_name')
             poll_questions = db.session.query(Polls).filter_by(
                 poll_name=poll_name).first().poll_questions  # {1,32,545,323,543}
@@ -528,9 +529,9 @@ def newpoll():
 
 
     poll_name = request.headers.get('poll_name')
-    check_if_poll_exists = db.session.query(Polls).filter_by(poll_name=poll_name).first()
-    if check_if_poll_exists != None:
-        return Response("poll name:" + poll_name + "already exists , please choose different name", status=409)
+    # check_if_poll_exists = db.session.query(Polls).filter_by(poll_name=poll_name).first()
+    # if check_if_poll_exists != None:
+    #     return Response("poll name:" + poll_name + "already exists , please choose different name", status=409)
 
 
     # print("poll_name", poll_name)
@@ -562,16 +563,14 @@ def newpoll():
                 value = iter.split(":")[1]
             else:
                 value = iter.split(":")[1][1:-1]
-            print(key)
-            print(value)
+
             dict[key] = value
 
             if key == 'filter_answer':
                 filter_answer = value
 
             if key == 'answers_counter':
-                print()
-                print(dict)
+
                 if value == "2":
                     answers += dict['answer1']+","+dict['answer2']
                     if filter_answer == "1":
@@ -610,7 +609,6 @@ def newpoll():
 
 
         Polls.addPoll(poll_name,poll_question_id,expected_answers,db)
-        print("are we here???")
         return Response('OK', status=200)
 
     except Exception as e:
@@ -754,12 +752,23 @@ def get_admins():
 @app.route('/get_pools', methods=['GET', 'POST']) #
 def get_polls():
     polls = db.session.query(Polls.poll_name).all()
-    print("polls are:" ,polls)
     result = polls_schema.dump(polls)
-    print(result)
-    print("jsonify:", jsonify(result))
     return jsonify(result)
 
+
+
+@app.route('/is_poll_exists', methods=['GET', 'POST']) #
+def is_poll_exists():
+    try:
+        poll_name = request.headers.get('poll_name')
+        check_if_poll_exists = db.session.query(Polls).filter_by(poll_name=poll_name).first()
+    except :
+        return Response("internal error", status=500)
+
+    if check_if_poll_exists != None:
+        return Response("poll name:" + poll_name + "already exists , please choose different name", status=409)
+    else:
+        return Response("OK",status=200)
 
 
 @app.route('/')
