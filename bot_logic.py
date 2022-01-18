@@ -6,6 +6,7 @@ import telegram
 from telegram import Update, ForceReply
 # from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from app import telegram_chat_id_map
+from config import bot_key, flask_PATH
 
 import telegram
 from telegram import (
@@ -201,7 +202,7 @@ def unregister_cmd(update: Update, context: CallbackContext):
     chat_id = update['message']['chat']['id']
     # params = {'UserName': user_to_unregister, 'ChatId': chat_id, 'context': context}
     params = {'UserName': user_to_unregister, 'ChatId': chat_id}
-    response = requests.get(url='http://127.0.0.1:5000/remove', params=params)
+    response = requests.get(url=flask_PATH+'/remove', params=params)
     context.bot.send_message(chat_id=update.effective_chat.id, text=response.text)
     # MAYBE NEED TO SWITCH IP
 
@@ -215,7 +216,8 @@ def register_cmd(update: Update, context: CallbackContext):
     user_to_unregister = update['message']['text'].split(' ')[1]
     chat_id = update['message']['chat']['id']
     params = {'UserName': user_to_unregister, 'ChatId': chat_id}
-    response = requests.get(url='http://127.0.0.1:5000/register', params=params)
+    # response = requests.get(url='http://127.0.0.1:5000/register', params=params)
+    response = requests.get(url=flask_PATH + '/register', params=params)
     context.bot.send_message(chat_id=update.effective_chat.id, text=response.text)
     # MAYBE NEED TO SWITCH IP
 
@@ -226,7 +228,7 @@ def runbot() -> None:
     # print(TELEGRAM_BOT_TOKEN)
     # updater = Updater(os.environ.get(TELEGRAM_BOT_TOKEN, ''))
     # updater = Updater('5067453157:AAHvdsy2WlAEvaYa8cDb059hhIlDm1evPNc')
-    updater = Updater('5096133703:AAEWvtF28cFDcbbWrqdkpqcfAMTIf_SLmrY')
+    updater = Updater(bot_key)
 
 
     # Get the dispatcher to register handlers

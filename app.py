@@ -7,6 +7,7 @@ from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
 import telegram
+import bcrypt
 from telegram import (
     Poll,
     ParseMode,
@@ -32,6 +33,20 @@ ma = Marshmallow(app)
 
 # FLASK_APP= 'app.py'
 # db.create_all()
+
+
+
+
+def get_hashed_password(plain_text_password):
+    # Hash a password for the first time
+    #   (Using bcrypt, the salt is saved into the hash itself)
+    return bcrypt.hashpw(plain_text_password, bcrypt.gensalt())
+
+def check_password(plain_text_password, hashed_password):
+    # Check hashed password. Using bcrypt, the salt is saved into the hash itself
+    return bcrypt.checkpw(plain_text_password, hashed_password)
+
+
 
 def sendpoll_to_users(users,question,answers,question_id,expected_answer):
     # active_chat_id =  db.session.query(Users).filter_by(username=user).all().active
@@ -189,10 +204,13 @@ class Admins(db.Model):
             .format(self.username, self.encrypted_data,)
 
     def add_superadmin(admin_user_name, admin_password, db_input):
-        cryptor = rncryptor.RNCryptor()
-        encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
-        decoded_data = encrypted_data.decode(encoding='iso8859-1')
-        Admins.add_admin(admin_user_name, decoded_data, db)
+        # cryptor = rncryptor.RNCryptor()
+        # encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
+        # decoded_data = encrypted_data.decode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
+        # # decoded_data = encrypted_data.decode(encoding='iso8859-1')
+        hashed_pass = get_hashed_password(admin_password)
+        print("hashed_pass" ,hashed_pass)
+        Admins.add_admin(admin_user_name, hashed_pass, db_input)
 
     def add_admin(username,encrypted_data,db_input):
         new_Admin = Admins(username, encrypted_data)
@@ -270,7 +288,7 @@ class MapPollIdExpectedAnswers(db.Model):
 
 class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
-    poll_name = db.Column(db.String, primary_key=True)
+    poll_name = db.Column(db.String , nullable=True)
     # poll_name = db.Column(db.String,nullable=False)
     # poll_telegram_id = db.Column(db.Integer, nullable=True)
     poll_questions = db.Column(db.String(300),nullable=True)  # {1,2,12,34,12} #num =question_id
@@ -547,34 +565,41 @@ def newpoll():
                 Questions.AddPollQuestion(poll_name, dict['question'], answers, db)
                 question_id = db.session.query(Questions).filter_by(poll_name=poll_name,
                                                                     question=dict['question']).first().question_id
+                print("question_id" ,question_id)
                 poll_question_id += str(question_id) + ","
+                print("poll_question_id", poll_question_id)
                 answers =""
+        print("before adding poll")
         Polls.addPoll(poll_name,poll_question_id,expected_answers,db)
         return Response('OK', status=200)
-    except:
+    except Exception as e:
+        print(e)
         return Response('Internal Error', status=500)
 
 @app.route('/add_admin', methods=['GET', 'POST'])
 def register_new_admin():
-    try:
-        if request.method == 'GET':
 
+    try:
+
+                # admin_user_name = request.args['username']
                 admin_user_name = request.headers.get('username')
                 print('admin_user_name', admin_user_name)
                 admin_password = request.headers.get('password')
+                # admin_password = request.args['password']
                 print('admin_password', admin_password)
 
                 check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
                 if check_user_admin is not None:
                     return Response('Conflict', status=409)
                 else:
-                    cryptor = rncryptor.RNCryptor()
-                    encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
-                    print("encrypted_data", encrypted_data)
-                    decoded_data = encrypted_data.decode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
-                    # decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
-                    print("decoded_data", decoded_data)
-                    Admins.add_admin(admin_user_name, decoded_data,db)
+                    # cryptor = rncryptor.RNCryptor()
+                    # encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
+                    # print("encrypted_data", encrypted_data)
+                    # decoded_data = encrypted_data.decode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
+                    # # decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
+                    # print("decoded_data", decoded_data)
+                    hashed_pass = get_hashed_password(admin_password)
+                    Admins.add_admin(admin_user_name, hashed_pass,db)
                     # salt_from_storage = storage[:32]  # 32 is the length of the salt
                     # key_from_storage = storage[32:]
                     return Response('OK', status=200)
@@ -585,26 +610,35 @@ def register_new_admin():
 @app.route("/login_auth", methods=["GET"], strict_slashes=False)
 def login_auth():
     try:
-        admin_user_name = request.headers.get('Username')
+        admin_user_name = request.headers.get('username')
+        print("admin_user_name",admin_user_name)
 
-        input_password = request.headers.get('Password')
-
+        input_password = request.headers.get('password')
+        print("input_password", input_password)
         admin_entry = db.session.query(Admins).filter_by(
             username=admin_user_name).first()
+        print("admin_entry", admin_entry)
         # print('admin_entry', admin_entry)
 
-        if not admin_entry:
-            # print(401)
+        if admin_entry is  None:
             return Response('Unauthorized', status=401)
 
-        else:
-            cryptor = rncryptor.RNCryptor()
-            encrypted_data = admin_entry.encrypted_data
-            encoded_data = encrypted_data.encode(encoding= 'iso8859-1')
-            decrypted_data = cryptor.decrypt(encoded_data, admin_user_name)
 
-            if decrypted_data == input_password:
-                # print(200)
+        else:
+            # cryptor = rncryptor.RNCryptor()
+            # encrypted_data = admin_entry.encrypted_data
+            # print("encrypted_data", encrypted_data)
+            # encoded_data = encrypted_data.encode(encoding= 'iso8859-1')
+            # # encoded_data = encrypted_data.encode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
+            # print("encoded_data", encoded_data)
+            # decrypted_data = cryptor.decrypt(encoded_data, admin_user_name)
+            # print("decrypted_data", decrypted_data)
+            saved_hashed_pass = admin_entry.encrypted_data
+            # new_hashed_password = check_password(input_password,saved_hashed_pass)
+
+            if  check_password(input_password, saved_hashed_pass):
+            # if new_hashed_password == input_password:
+            #     # print(200)
                 return Response('OK', status=200)
             else:
                 # print(403)
