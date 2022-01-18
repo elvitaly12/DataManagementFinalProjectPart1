@@ -6,6 +6,8 @@ import telegram
 from telegram import Update, ForceReply
 # from telegram.ext import Updater, CommandHandler, MessageHandler, Filters, CallbackContext
 from app import telegram_chat_id_map
+
+import telegram
 from telegram import (
     Poll,
     ParseMode,
@@ -14,9 +16,7 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
-Bot
-
-)
+Bot)
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -92,27 +92,42 @@ def poll(update: Update, context: CallbackContext) -> None:
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     """Summarize a users poll vote"""
     # print("answer update:" ,update)
+    # print("INISDE ANSWER BOT")
     answer = update.poll_answer
+    # print("answer",answer)
     poll_telegram = answer.poll_id
+    # print("poll_telegram", poll_telegram)
     selected_options = answer.option_ids   # indexes of the selected options
+    # print("selected_options", selected_options)
     question_id = app.db.session.query(app.telegram_chat_id_map).filter_by(telegram_bot_id=poll_telegram).first().question_id
+    # print("question_id", question_id)
+
     question = app.db.session.query(app.Questions).filter_by(
         question_id=question_id).first().question
+    # print("question", question)
     answers = app.db.session.query(app.Questions).filter_by(
         question_id=question_id).first().answers
+    answers = answers.split(",")
+    # print("answers", answers)
     user_answer = ""
     for i in selected_options:
         # user_answers.append(answers[i])
         user_answer += answers[i]
+    # print("user_answer", user_answer)
     expected_answer = app.db.session.query(app.telegram_chat_id_map).filter_by(telegram_bot_id=poll_telegram).first().expected_answer
     chat_id = answer.user.id  # user who answered the poll
-    poll_id = app.db.session.query(app.Questions).filter_by(question_id=question_id).first().poll_id
+    poll_name = app.db.session.query(app.Questions).filter_by(question_id=question_id).first().poll_name
+    poll_id = app.db.session.query(app.Polls).filter_by(poll_name=poll_name).first().poll_id
+    # print("poll_id", poll_id)
     app.PollsAnswers.addPollAnswer(chat_id, poll_id, poll_telegram, question, user_answer,question_id, app.db)
 
     #  prepare for next question  in poll
     poll_questions = app.db.session.query(app.Polls).filter_by(poll_id=poll_id).first().poll_questions
-    poll_questions_ids = poll_questions[2:-3].split(",")
+    # print("poll_questions", poll_questions)
+    poll_questions_ids = poll_questions.split(",")[:-1]
+    # print("poll_questions after split", poll_questions_ids)
     last_question_in_the_poll = poll_questions_ids[-1]
+    # print("last_question_in_the_poll after split", last_question_in_the_poll)
 
 
     is_more_question_to_ask =  last_question_in_the_poll != str(question_id)

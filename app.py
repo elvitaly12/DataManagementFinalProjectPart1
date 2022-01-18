@@ -4,12 +4,10 @@ from flask import Flask, request
 from flask import Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
-from config import password
-from config import port
+
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
-
 import telegram
 from telegram import (
     Poll,
@@ -19,9 +17,11 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
-Bot
+Bot)
 
-)
+from config import bot_key ,postgres_connection_string
+bot = telegram.Bot(token=bot_key)
+
 
 
 
@@ -30,8 +30,7 @@ from flask import current_app, flash, jsonify, make_response, redirect, request,
 import rncryptor
 app = Flask(__name__)
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = True
-db_name = "beautipoll_db"
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres:' + password + '@localhost:'+port+'/'+db_name
+app.config['SQLALCHEMY_DATABASE_URI'] = postgres_connection_string
 db = SQLAlchemy(app)
 migrate = Migrate(app, db, compare_type=True,)
 cors = CORS()
@@ -43,7 +42,7 @@ ma = Marshmallow(app)
 
 
 #### 1/10
-bot = telegram.Bot(token='5096133703:AAEWvtF28cFDcbbWrqdkpqcfAMTIf_SLmrY')
+
 def sendpoll_to_users(users,question,answers,question_id,expected_answer):
 
     # active_chat_id =  db.session.query(Users).filter_by(username=user).all().active
@@ -70,12 +69,17 @@ def send_first_question_in_poll(question_id,expected_answer):
     # print("inside poll: " ,question_id)
     question = db.session.query(Questions).filter_by(
         question_id=int(question_id)).first().question
+    # print("first poll question")
+    # print("question" ,question)
 
     answers = db.session.query(Questions).filter_by(
         question_id=int(question_id)).first().answers
+    # print("answers", answers)
     answers = answers.split(",")
+    # print("answers after split", answers)
     chat_ids =  db.session.query(Users.chat_id).filter_by(
         active=True).all()
+    # print("chat_ids", chat_ids)
     result_dict = map(lambda q: q._asdict(), chat_ids)
     for user_chat_id in result_dict:
         # print(user_chat_id)
@@ -209,10 +213,20 @@ class Admins(db.Model):
             .format(self.username, self.encrypted_data,)
 
 
+    def add_superadmin(admin_user_name, admin_password, db_input):
+        cryptor = rncryptor.RNCryptor()
+        encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
+        decoded_data = encrypted_data.decode(encoding='iso8859-1')
+        Admins.add_admin(admin_user_name, decoded_data, db)
+
     def add_admin(username,encrypted_data,db_input):
         new_Admin = Admins(username, encrypted_data)
         db_input.session.add(new_Admin)
         db_input.session.commit()
+
+
+
+
 
     def Delete_Admin(username, db_input):
         obj = Admins \
@@ -495,19 +509,26 @@ def unregister_HTTP_request():
 # previous expected  {poll_id,expected_answers}
 def activate_poll():
         try:
-            print("are we here? activate_poll")
+
             poll_name = request.headers.get('poll_name')
+
             poll_questions = db.session.query(Polls).filter_by(
                 poll_name=poll_name).first().poll_questions  # {1,32,545,323,543}
+
             poll_id = db.session.query(Polls).filter_by(
                 poll_name=poll_name).first().poll_id  # {1,32,545,323,543}
 
+            poll_questions = poll_questions.split(",")
+            poll_questions = poll_questions[:-1]
+            print("poll_questions after cut", poll_questions)
+
             expected_answers = db.session.query(Polls).filter_by(
                 poll_name=poll_name).first().expected_answers  # {1,32,545,323,543}
+
             expected_answers = expected_answers.split(",")
-            poll_questions = poll_questions[2:-2]
-            question_ids = poll_questions.split(",")
-            send_first_question_in_poll(question_ids[0], expected_answers[0])
+            expected_answers = expected_answers[:-1]
+
+            send_first_question_in_poll(poll_questions[0], expected_answers[0])
 
             expected_Answers = ""
             for answer in expected_answers:
@@ -630,16 +651,19 @@ def newpoll():
 @app.route('/add_admin', methods=['GET', 'POST'])
 def register_new_admin():
     if request.method == 'GET':
-        admin_user_name = request.headers.get('Username')
+        admin_user_name = request.headers.get('username')
         print('admin_user_name', admin_user_name)
-        admin_password = request.headers.get('Password')
+        admin_password = request.headers.get('password')
         print('admin_password', admin_password)
 
         check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
         if check_user_admin is None:
             cryptor = rncryptor.RNCryptor()
             encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
-            decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
+            print("encrypted_data", encrypted_data)
+            decoded_data = encrypted_data.decode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
+            # decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
+            print("decoded_data", decoded_data)
             Admins.add_admin(admin_user_name, decoded_data,db)
             # salt_from_storage = storage[:32]  # 32 is the length of the salt
             # key_from_storage = storage[32:]
@@ -718,23 +742,28 @@ def poll_questions():
     # # print('my_dict' ,my_dict)
 
 
-@app.route('/get_Question_send_answer', methods=['GET', 'POST'])  # from ui recieve question_name and poll_name return all answers
-def get_Question_send_answer():
-    Question_name = request.headers.get('Question_name')
-    poll_name = request.headers.get('Poll_name')
+@app.route('/question_votes', methods=['GET', 'POST'])  # from ui recieve question_name and poll_name return all answers
+def question_votes():
+    question_name = request.headers.get('question_name')
+    # print("question_name" ,question_name)
+    poll_name = request.headers.get('poll_name')
+    # print("poll_name", poll_name)
     results = []
     question_result = ""
     my_dict = dict()
     answers = db.session.query(Questions).filter_by(
-        question=Question_name , poll_name=poll_name).first().answers
+        question=question_name , poll_name=poll_name).first().answers
 
-    answers_parsed = []
-    for key in answers:
-        answers_parsed.append(answers[key])
-    for answer in answers_parsed:
-       answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
-       my_dict[answer] = answer_count
-    print(my_dict)
+
+    answers = answers.split(',')
+    # print("answers", answers)
+    for answer in answers:
+        # print("answer inside loop", answer)
+        answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
+        my_dict[answer] = answer_count
+
+
+    # print(my_dict)
     return jsonify(my_dict)
 
 

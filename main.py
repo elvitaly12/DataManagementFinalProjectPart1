@@ -1,19 +1,14 @@
-import json
-import os
-import operator
-from sqlalchemy_utils.aggregates import manager
+
 
 from bot_logic import runbot
 from app import app,Users, dict_to_json, Questions, Polls,telegram_chat_id_map,MapPollIdExpectedAnswers,PollsAnswers,Admins
 import threading
-from sqlalchemy.ext.declarative import declarative_base
+
 from app import db
 from sqlalchemy_utils import database_exists, create_database
-# Base = declarative_base()
-# # from flask.ext.migrate import Migrate, MigrateCommand
-# from flask_migrate import Migrate,MigrateCommand
-# from flask.cli  import FlaskGroup
-import hashlib
+
+from config import  super_admin_user,super_admin_password
+import os
 
 class FlaskThread(threading.Thread):
     def run(self) -> None:
@@ -68,8 +63,8 @@ if __name__ == "__main__":
     #
     flask_thread = FlaskThread()
     flask_thread.start()
-    # bot_thread = TelegramThread()
-    # bot_thread.start()
+    bot_thread = TelegramThread()
+    bot_thread.start()
 
 
 

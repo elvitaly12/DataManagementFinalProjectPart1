@@ -1,10 +1,12 @@
 
-* move pages to be only after login
-* change to h5 at show results
 
-* tests
-* prepare for submitting (script, enviro.yml, package.json etc...)
-* look at piazza before submitting project.
+* prepare for submitting (
+script,
+enviro.yml, again
+package.json
+config
+etc...)
+* tests, full with script
 
 
 Misc:
@@ -53,3 +55,5 @@ done:
 * show chart
 * check activate poll
 * check function of votes counters
+* look at piazza before submitting project.
+* move pages to be only after login
