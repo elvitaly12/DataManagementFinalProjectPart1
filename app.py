@@ -1,10 +1,8 @@
 import json
-
 from flask import Flask, request
 from flask import Response
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import ForeignKey
-
 from flask_migrate import Migrate
 from flask_marshmallow import Marshmallow
 from flask_cors import CORS
@@ -17,14 +15,9 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
-Bot)
-
+    Bot)
 from config import bot_key ,postgres_connection_string
 bot = telegram.Bot(token=bot_key)
-
-
-
-
 from flask import current_app, flash, jsonify, make_response, redirect, request, url_for
 
 import rncryptor
@@ -40,15 +33,10 @@ ma = Marshmallow(app)
 # FLASK_APP= 'app.py'
 # db.create_all()
 
-
-#### 1/10
-
 def sendpoll_to_users(users,question,answers,question_id,expected_answer):
-
     # active_chat_id =  db.session.query(Users).filter_by(username=user).all().active
     for user in users:
         chat_id = db.session.query(Questions).filter_by(username=user).first().chat_id
-
         if db.session.query(Users).filter_by(username=user).first().active == True:
             message = bot.send_poll(
                 chat_id,
@@ -62,7 +50,6 @@ def sendpoll_to_users(users,question,answers,question_id,expected_answer):
                 api_kwargs={}  # use either this or poll_id
             )
             telegram_chat_id_map.add_new_map(message.poll.id,chat_id,question_id,expected_answer,db)
-
 
 
 def send_first_question_in_poll(question_id,expected_answer):
@@ -100,10 +87,6 @@ def send_first_question_in_poll(question_id,expected_answer):
         telegram_chat_id_map.add_new_map(str(telegram_bot_id), str(user_chat_id['chat_id']),int(question_id),expected_answer, db)
 
 
-
-####
-
-
 def dict_to_json(question_poll,answers_poll):
     dict_to_json = {"question": question_poll}
     i = 1
@@ -116,8 +99,6 @@ def dict_to_json(question_poll,answers_poll):
     # dict_to_json.update(answers_poll)
 
     return  dict_to_json
-
-
 
 class Users(db.Model):
     username = db.Column(db.String(30), primary_key=True)
@@ -134,16 +115,12 @@ class Users(db.Model):
         return "<Users(username='{}', chat_id={}, active={})>" \
             .format(self.username, self.chat_id, self.active)
 
-
     def DeleteUserName(username,db_input):
         obj = Users\
             .query.filter_by(username=username).first()
          # db_input.session.query(Users).filter_by(username=username).first().delete()
         db.session.delete(obj)
         db.session.commit()
-
-
-
 
 
     def GetUserNameByChatId(chat_id,db_input):  # check if we  have more than 1 username per chat_id
@@ -207,11 +184,9 @@ class Admins(db.Model):
         self.username = username
         self.encrypted_data = encrypted_data
 
-
     def __repr__(self):
         return "<Admins(username='{}', encrypted_data='{}')>" \
             .format(self.username, self.encrypted_data,)
-
 
     def add_superadmin(admin_user_name, admin_password, db_input):
         cryptor = rncryptor.RNCryptor()
@@ -223,10 +198,6 @@ class Admins(db.Model):
         new_Admin = Admins(username, encrypted_data)
         db_input.session.add(new_Admin)
         db_input.session.commit()
-
-
-
-
 
     def Delete_Admin(username, db_input):
         obj = Admins \
@@ -258,7 +229,6 @@ class telegram_chat_id_map(db.Model):
         return "<telegram_chat_id_map(telegram_bot_id='{}', chat_id='{}',question_id={},expected_answer='{}')>" \
             .format(self.telegram_bot_id, self.chat_id,self.question_id,self.expected_answer)
 
-
     def add_new_map(telegram_bot_id,chat_id,question_id,expected_answer,db_input):
         new_poll = telegram_chat_id_map(telegram_bot_id,chat_id,question_id,expected_answer)
         db_input.session.add(new_poll)
@@ -272,8 +242,6 @@ class telegram_chat_id_map(db.Model):
             # db_input.session.query(Users).filter_by(username=username).first().delete()
             db_input.session.delete(obj)
             db_input.session.commit()
-
-
 
 class MapPollIdExpectedAnswers(db.Model):
     poll_id = db.Column(db.Integer(), primary_key=True)
@@ -292,17 +260,13 @@ class MapPollIdExpectedAnswers(db.Model):
         db_input.session.add(new_poll)
         db_input.session.commit()
 
-
     def Delete_PollMapping(poll_id, db_input):
-
             obj = MapPollIdExpectedAnswers \
                 .query.filter_by(poll_id=poll_id).first()
             print(obj)
             # db_input.session.query(Users).filter_by(username=username).first().delete()
             db_input.session.delete(obj)
             db_input.session.commit()
-
-
 
 class Polls(db.Model):
     poll_id = db.Column(db.Integer, primary_key=True)
@@ -317,13 +281,9 @@ class Polls(db.Model):
           self.poll_questions = poll_questions
           self.expected_answers = expected_answers
 
-
-
-
     def __repr__(self):
         return "<Polls(poll_id={},poll_name='{}' ,poll_questions='{}',expected_answers='{}')>" \
             .format(self.poll_id,self.poll_name ,self.poll_questions,self.expected_answers)
-
 
     def addPoll(poll_questions,poll_name,expected_answers,db_input):
         new_poll = Polls(poll_questions,poll_name,expected_answers)
@@ -336,8 +296,6 @@ class PollsSchema(ma.Schema):
 poll_schema =  PollsSchema()
 polls_schema =  PollsSchema(many=True)
 
-
-
 class Questions(db.Model):
     question_id = db.Column(db.Integer, primary_key=True)
     poll_name = db.Column(db.String, nullable=True)
@@ -345,9 +303,7 @@ class Questions(db.Model):
     answers =   db.Column(db.String(300), nullable=False)
     telegram_question_id = db.Column(db.String(50), primary_key=False)   # too many chars for integer
 
-
     def __init__(self,  poll_name, question,answers,telegram_question_id):
-
         self.poll_name = poll_name
         self.question = question
         self.answers = answers
@@ -376,8 +332,6 @@ class QuestionsSchema(ma.Schema):
 question_schema = QuestionsSchema()
 questions_schema = QuestionsSchema(many=True)
 
-
-
 class Answers(db.Model):
     answer_id = db.Column(db.Integer, primary_key=True)
     telegram_question_id =  db.Column(db.Integer, primary_key=True)
@@ -393,7 +347,6 @@ class Answers(db.Model):
         return "<Answers(answer_id={}, telegram_question_id={}, description='{}')>" \
             .format(self.answer_id, self.telegram_question_id, self.description)
 
-
 class PollsAnswers(db.Model):
     chat_id = db.Column(db.Integer, primary_key=True)
     poll_id = db.Column(db.Integer,  primary_key=True)
@@ -401,7 +354,6 @@ class PollsAnswers(db.Model):
     question_id = db.Column(db.Integer, primary_key=False)
     poll_question = db.Column(db.String, nullable=False)
     answers = db.Column(db.String, nullable=False)
-
 
     def __init__(self, chat_id, poll_id, telegram_question_id,poll_question ,answers,question_id):
         self.chat_id = chat_id
@@ -509,9 +461,7 @@ def unregister_HTTP_request():
 # previous expected  {poll_id,expected_answers}
 def activate_poll():
         try:
-
             poll_name = request.headers.get('poll_name')
-
             poll_questions = db.session.query(Polls).filter_by(
                 poll_name=poll_name).first().poll_questions  # {1,32,545,323,543}
 
@@ -541,42 +491,26 @@ def activate_poll():
         except:
             return Response('Internal Error', status=500)
 
-
-
-
 @app.route('/newpoll', methods=['GET', 'POST']) # from ui recieve post request , params like this : headers : poll_name : "fds" , body:{question:"how are you" , answer1:".."}
 # previous expected  {poll_id,expected_answers}
 def newpoll():
-
-
-    poll_name = request.headers.get('poll_name')
-    # check_if_poll_exists = db.session.query(Polls).filter_by(poll_name=poll_name).first()
-    # if check_if_poll_exists != None:
-    #     return Response("poll name:" + poll_name + "already exists , please choose different name", status=409)
-
-
-    # print("poll_name", poll_name)
-    # body = request.form
-    body = request.headers.get('body')
-
-
-    poll_question_id  = ""
-    expected_answers = ""
-    body = body[2:-2]
-    # print("body",body)
-    body_after_split = body.split(",")
-
-
-    answers = ""
-    answer3a = ""
-    answer4a = ""
-    filter_answer = "-1"
-
-
     try:
+        poll_name = request.headers.get('poll_name')
+        body = request.headers.get('body')
+
+        poll_question_id  = ""
+        expected_answers = ""
+        body = body[2:-2]
+        # print("body",body)
+        body_after_split = body.split(",")
+
+        answers = ""
+        answer3a = ""
+        answer4a = ""
+        filter_answer = "-1"
 
         dict = {}
-        for iter  in body_after_split:
+        for iter in body_after_split:
             iter = iter.replace("{", "")
             iter = iter.replace("}", "")
             key = iter.split(":")[0][1:-1]
@@ -584,14 +518,10 @@ def newpoll():
                 value = iter.split(":")[1]
             else:
                 value = iter.split(":")[1][1:-1]
-
             dict[key] = value
-
             if key == 'filter_answer':
                 filter_answer = value
-
             if key == 'answers_counter':
-
                 if value == "2":
                     answers += dict['answer1']+","+dict['answer2']
                     if filter_answer == "1":
@@ -608,11 +538,6 @@ def newpoll():
                     elif filter_answer == "3":
                         expected_answers += dict['answer3'] + ","
                 elif value == "4":
-                    # print(dict['answer1'])
-                    # print(dict['answer2'])
-                    # print(dict['answer3'])
-                    # print(dict['answer4'])
-
                     answers += dict['answer1'] + "," + dict['answer2'] + "," + dict['answer3']+"," +dict['answer4']
                     if filter_answer == "1":
                         expected_answers += dict['answer1'] + ","
@@ -627,79 +552,68 @@ def newpoll():
                                                                     question=dict['question']).first().question_id
                 poll_question_id += str(question_id) + ","
                 answers =""
-
-
         Polls.addPoll(poll_name,poll_question_id,expected_answers,db)
         return Response('OK', status=200)
-
-    except Exception as e:
-        print(e)
+    except:
         return Response('Internal Error', status=500)
-
-
-
-
-
-
-
-
-
-
-
-
 
 @app.route('/add_admin', methods=['GET', 'POST'])
 def register_new_admin():
-    if request.method == 'GET':
-        admin_user_name = request.headers.get('username')
-        print('admin_user_name', admin_user_name)
-        admin_password = request.headers.get('password')
-        print('admin_password', admin_password)
+    try:
+        if request.method == 'GET':
 
-        check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
-        if check_user_admin is None:
-            cryptor = rncryptor.RNCryptor()
-            encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
-            print("encrypted_data", encrypted_data)
-            decoded_data = encrypted_data.decode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
-            # decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
-            print("decoded_data", decoded_data)
-            Admins.add_admin(admin_user_name, decoded_data,db)
-            # salt_from_storage = storage[:32]  # 32 is the length of the salt
-            # key_from_storage = storage[32:]
+                admin_user_name = request.headers.get('username')
+                print('admin_user_name', admin_user_name)
+                admin_password = request.headers.get('password')
+                print('admin_password', admin_password)
 
-            return Response('OK', status=200)
-        else:
-            print(409)
-            return Response('Conflict', status=409)
+                check_user_admin = db.session.query(Admins).filter_by(username=admin_user_name).first()
+                if check_user_admin is not None:
+                    return Response('Conflict', status=409)
+                else:
+                    cryptor = rncryptor.RNCryptor()
+                    encrypted_data = cryptor.encrypt(admin_password, admin_user_name)
+                    print("encrypted_data", encrypted_data)
+                    decoded_data = encrypted_data.decode('iso8859-1', errors="replace").replace("\x00", "\uFFFD")
+                    # decoded_data = encrypted_data.decode(encoding= 'iso8859-1')
+                    print("decoded_data", decoded_data)
+                    Admins.add_admin(admin_user_name, decoded_data,db)
+                    # salt_from_storage = storage[:32]  # 32 is the length of the salt
+                    # key_from_storage = storage[32:]
+                    return Response('OK', status=200)
+    except:
+        return Response('Internal Server Error', status=500)
+
 
 @app.route("/login_auth", methods=["GET"], strict_slashes=False)
 def login_auth():
-    admin_user_name = request.headers.get('Username')
+    try:
+        admin_user_name = request.headers.get('Username')
 
-    input_password = request.headers.get('Password')
+        input_password = request.headers.get('Password')
 
-    admin_entry = db.session.query(Admins).filter_by(
-        username=admin_user_name).first()
-    # print('admin_entry', admin_entry)
+        admin_entry = db.session.query(Admins).filter_by(
+            username=admin_user_name).first()
+        # print('admin_entry', admin_entry)
 
-    if not admin_entry:
-        # print(401)
-        return Response('Unauthorized', status=401)
+        if not admin_entry:
+            # print(401)
+            return Response('Unauthorized', status=401)
 
-    else:
-        cryptor = rncryptor.RNCryptor()
-        encrypted_data = admin_entry.encrypted_data
-        encoded_data = encrypted_data.encode(encoding= 'iso8859-1')
-        decrypted_data = cryptor.decrypt(encoded_data, admin_user_name)
-
-        if decrypted_data == input_password:
-            # print(200)
-            return Response('OK', status=200)
         else:
-            # print(403)
-            return Response('Conflict', status=409)
+            cryptor = rncryptor.RNCryptor()
+            encrypted_data = admin_entry.encrypted_data
+            encoded_data = encrypted_data.encode(encoding= 'iso8859-1')
+            decrypted_data = cryptor.decrypt(encoded_data, admin_user_name)
 
+            if decrypted_data == input_password:
+                # print(200)
+                return Response('OK', status=200)
+            else:
+                # print(403)
+                return Response('Conflict', status=409)
+    except:
+        return Response('Internal Server Error', status=500)
 
 
 
@@ -708,81 +622,82 @@ def login_auth():
 
 @app.route('/poll_questions', methods=['GET', 'POST']) # from ui recieve  poll_name return all question
 def poll_questions():
-    Poll_name = request.headers.get('poll_name')
-    my_dict = dict()
-    entry = db.session.query(Polls.poll_questions).filter_by(poll_name=Poll_name).first()
-    poll_questions = entry.poll_questions.split(",")
-    # print('poll_questions_ids: ', poll_questions)
-    question_names = []
-    poll_questions = poll_questions[:-1]
-    # print('poll_questions_ids: ', poll_questions)
+    try:
+        Poll_name = request.headers.get('poll_name')
+        my_dict = dict()
+        entry = db.session.query(Polls.poll_questions).filter_by(poll_name=Poll_name).first()
+        poll_questions = entry.poll_questions.split(",")
+        # print('poll_questions_ids: ', poll_questions)
+        question_names = []
+        poll_questions = poll_questions[:-1]
+        # print('poll_questions_ids: ', poll_questions)
 
-    for question_id in poll_questions:
-        question_name = db.session.query(Questions).filter_by(question_id=question_id).first().question
-        # print('question_name', question_name)
-        question_names.append(question_name)
-    # print('question_names', question_names)
-    # result = questions_schema.dump(question_names)
-    # print(result)
-    # print("jsonify:", jsonify(question_names))
-    return jsonify(question_names)
-    # poll_questions = db.session.query(Polls).filter_by(poll_name=Poll_name).first().poll_questions
-    # poll_questions =poll_questions[2:-3].split(',')
-    # for index, value in enumerate(poll_questions):
-    #     description = db.session.query(Questions).filter_by(
-    #         question_id=int(value)).first().description
-    #
-    #     # print("description:" , description)
-    #     jsonData = json.loads(description)
-    #     params = []  # params[0] = question , rest answers
-    #     for key in jsonData:
-    #         params.append(jsonData[key])
-    #     poll_question = params[0]
-    #     my_dict[index] = poll_question
-    # # print('my_dict' ,my_dict)
+        for question_id in poll_questions:
+            question_name = db.session.query(Questions).filter_by(question_id=question_id).first().question
+            # print('question_name', question_name)
+            question_names.append(question_name)
+        # print('question_names', question_names)
+        # result = questions_schema.dump(question_names)
+        # print(result)
+        # print("jsonify:", jsonify(question_names))
+        return jsonify(question_names)
+    except:
+        return Response('Internal Server Error', status=500)
 
 
 @app.route('/question_votes', methods=['GET', 'POST'])  # from ui recieve question_name and poll_name return all answers
 def question_votes():
-    question_name = request.headers.get('question_name')
-    # print("question_name" ,question_name)
-    poll_name = request.headers.get('poll_name')
-    # print("poll_name", poll_name)
-    results = []
-    question_result = ""
-    my_dict = dict()
-    answers = db.session.query(Questions).filter_by(
-        question=question_name , poll_name=poll_name).first().answers
+    try:
+        question_name = request.headers.get('question_name')
+        # print("question_name" ,question_name)
+        poll_name = request.headers.get('poll_name')
+        # print("poll_name", poll_name)
+        results = []
+        question_result = ""
+        my_dict = dict()
+        answers = db.session.query(Questions).filter_by(
+            question=question_name , poll_name=poll_name).first().answers
 
 
-    answers = answers.split(',')
-    # print("answers", answers)
-    for answer in answers:
-        # print("answer inside loop", answer)
-        answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
-        my_dict[answer] = answer_count
+        answers = answers.split(',')
+        # print("answers", answers)
+        for answer in answers:
+            # print("answer inside loop", answer)
+            answer_count= db.session.query(PollsAnswers.answers).filter_by(answers=answer).count()
+            my_dict[answer] = answer_count
 
 
-    # print(my_dict)
-    return jsonify(my_dict)
-
+        # print(my_dict)
+        return jsonify(my_dict)
+    except:
+        return Response('Internal Server Error', status=500)
 
 
 
 @app.route('/get_admins', methods=['GET', 'POST']) #
 def get_admins():
-    admins_user_name = db.session.query(Admins.username).all()
-    result = admins_schema.dump(admins_user_name)
+    try:
+        admins_user_name = db.session.query(Admins.username).all()
+        result = admins_schema.dump(admins_user_name)
+        return jsonify(result)
+    except:
+        return Response('Internal Server Error', status=500)
     # print(result)
     # print("jsonify:", jsonify(result))
-    return jsonify(result)
+
 
 
 @app.route('/get_pools', methods=['GET', 'POST']) #
 def get_polls():
-    polls = db.session.query(Polls.poll_name).all()
-    result = polls_schema.dump(polls)
-    return jsonify(result)
+    try:
+        polls = db.session.query(Polls.poll_name).all()
+        result = polls_schema.dump(polls)
+        return jsonify(result)
+    except:
+        return Response('Internal Server Error', status=500)
+
+
+
 
 
 
@@ -801,7 +716,6 @@ def is_poll_exists():
         return Response("OK", status=200)
 
 
-@app.route('/')
-def hello_world():  # put application's code here
-    return 'Hello World!'
+
+
 
