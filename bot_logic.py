@@ -80,15 +80,17 @@ import logging
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     """Summarize a users poll vote"""
     # print("answer update:" ,update)
-    # print("INISDE ANSWER BOT")
+    print("INISDE ANSWER BOT")
     answer = update.poll_answer
-    # print("answer",answer)
+    print("answer",answer)
+
     poll_telegram = answer.poll_id
-    # print("poll_telegram", poll_telegram)
+    print("poll_telegram", poll_telegram)
+
     selected_options = answer.option_ids   # indexes of the selected options
-    # print("selected_options", selected_options)
+    print("selected_options", selected_options)
     question_id = app.db.session.query(app.telegram_chat_id_map).filter_by(telegram_bot_id=poll_telegram).first().question_id
-    # print("question_id", question_id)
+    print("question_id", question_id)
 
     question = app.db.session.query(app.Questions).filter_by(
         question_id=question_id).first().question
@@ -126,6 +128,9 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
     # print("is_user_active:", is_user_active)
 
     # send next poll
+    print("is_more_question_to_ask" ,is_more_question_to_ask)
+    print("is_user_asnwered_right", is_user_asnwered_right)
+    print("is_user_active", is_user_active)
     if is_more_question_to_ask and  is_user_asnwered_right and is_user_active:
         i = 0
         next_question_id = str(-1)
@@ -241,7 +246,7 @@ def runbot() -> None:
 
     dispatcher.add_handler(CommandHandler("register", register_cmd))
 
-    dispatcher.add_handler(CommandHandler('poll', poll))
+    # dispatcher.add_handler(CommandHandler('poll', poll))
 
     dispatcher.add_handler(PollAnswerHandler(receive_poll_answer))
 

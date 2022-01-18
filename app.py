@@ -301,24 +301,21 @@ class Questions(db.Model):
     poll_name = db.Column(db.String, nullable=True)
     question =  db.Column(db.String(300), nullable=False)
     answers =   db.Column(db.String(300), nullable=False)
-    telegram_question_id = db.Column(db.String(50), primary_key=False)   # too many chars for integer
+    # telegram_question_id = db.Column(db.String(50), primary_key=False)   # too many chars for integer
 
-    def __init__(self,  poll_name, question,answers,telegram_question_id):
+    def __init__(self,  poll_name, question,answers):
         self.poll_name = poll_name
         self.question = question
         self.answers = answers
-        self.telegram_question_id = telegram_question_id
+        # self.telegram_question_id = telegram_question_id
 
     def __repr__(self):
-        return "<Questions(question_id={},poll_name='{}', question='{}',answers='{}', telegram_question_id='{}')>" \
-            .format(self.question_id, self.poll_name, self.question,self.answers,self.telegram_question_id)
+        return "<Questions(question_id={},poll_name='{}', question='{}',answers='{}')>" \
+            .format(self.question_id, self.poll_name, self.question,self.answers)
 
-    def AddPollQuestion( poll_name, question,answers,telegram_question_id, db_input):
-        print(poll_name)
-        print(question)
-        print(answers)
-        print(telegram_question_id)
-        new_question = Questions(poll_name, question,answers,telegram_question_id)
+    def AddPollQuestion( poll_name, question,answers, db_input):
+
+        new_question = Questions(poll_name, question,answers)
         db_input.session.add(new_question)
         db_input.session.commit()
 
@@ -327,25 +324,25 @@ class Questions(db.Model):
 
 class QuestionsSchema(ma.Schema):
     class Meta:
-        fields = ('question_id', 'poll_name', 'question','answers','telegram_question_id')
+        fields = ('question_id', 'poll_name', 'question','answers')
 
 question_schema = QuestionsSchema()
 questions_schema = QuestionsSchema(many=True)
 
-class Answers(db.Model):
-    answer_id = db.Column(db.Integer, primary_key=True)
-    telegram_question_id =  db.Column(db.Integer, primary_key=True)
-    # question_id = db.Column(db.Integer, ForeignKey('questions.question_id'), nullable=False)
-    description = db.Column(db.String(300), nullable=False)
-
-    def __init__(self, answer_id, telegram_question_id, description):
-        self.answer_id = answer_id
-        self.telegram_question_id = telegram_question_id
-        self.description = description
-
-    def __repr__(self):
-        return "<Answers(answer_id={}, telegram_question_id={}, description='{}')>" \
-            .format(self.answer_id, self.telegram_question_id, self.description)
+# class Answers(db.Model):
+#     answer_id = db.Column(db.Integer, primary_key=True)
+#     telegram_question_id =  db.Column(db.Integer, primary_key=True)
+#     # question_id = db.Column(db.Integer, ForeignKey('questions.question_id'), nullable=False)
+#     description = db.Column(db.String(300), nullable=False)
+#
+#     def __init__(self, answer_id, telegram_question_id, description):
+#         self.answer_id = answer_id
+#         self.telegram_question_id = telegram_question_id
+#         self.description = description
+#
+#     def __repr__(self):
+#         return "<Answers(answer_id={}, telegram_question_id={}, description='{}')>" \
+#             .format(self.answer_id, self.telegram_question_id, self.description)
 
 class PollsAnswers(db.Model):
     chat_id = db.Column(db.Integer, primary_key=True)
@@ -547,7 +544,7 @@ def newpoll():
                         expected_answers += dict['answer3'] + ","
                     elif filter_answer == "4":
                         expected_answers += dict['answer4'] + ","
-                Questions.AddPollQuestion(poll_name, dict['question'], answers, "will_changed", db)
+                Questions.AddPollQuestion(poll_name, dict['question'], answers, db)
                 question_id = db.session.query(Questions).filter_by(poll_name=poll_name,
                                                                     question=dict['question']).first().question_id
                 poll_question_id += str(question_id) + ","
