@@ -1,13 +1,13 @@
 
-Ofir:
-*show chart
+Ofir: 10:00-11:00
+*show chart 10:00
 
-Vitaly:
+Vitaly: 10:00-11:00
 *check activate poll
 *check function of votes counters
 
-*tests
-*prepare for submitting (script, enviro.yml etc...)
+11:00-12:00 *tests
+12:00-13:00 *prepare for submitting (script, enviro.yml etc...)
 
 Misc:
 
