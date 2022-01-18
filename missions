@@ -1,12 +1,13 @@
 
-Ofir:
+Ofir: 10:00-11:00
+*show chart 10:00
 
-* implement CreateNewPoll page (and move create polls to ui)
-* fix bug of form not empty
+Vitaly: 10:00-11:00
+*check activate poll
+*check function of votes counters
 
-Vitaly:
-* design showPolls with amCharts
-
+11:00-12:00 *tests
+12:00-13:00 *prepare for submitting (script, enviro.yml etc...)
 
 Misc:
 
@@ -49,3 +50,5 @@ done:
 * implement login logic (check credentials in db)
   and add_admin logic
 * when sending a follow up poll, check if a user is active before sending him a poll.
+* implement CreateNewPoll page (and move create polls to ui)
+* fix bug of form not empty
