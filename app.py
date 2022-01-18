@@ -762,13 +762,14 @@ def is_poll_exists():
     try:
         poll_name = request.headers.get('poll_name')
         check_if_poll_exists = db.session.query(Polls).filter_by(poll_name=poll_name).first()
-    except :
-        return Response("internal error", status=500)
+    except Exception as e:
+        print(e)
+        return Response("Internal Server Error", status=500)
 
-    if check_if_poll_exists != None:
-        return Response("poll name:" + poll_name + "already exists , please choose different name", status=409)
+    if check_if_poll_exists is not None:
+        return Response("poll name:" + poll_name + "already exists, please choose different name", status=409)
     else:
-        return Response("OK",status=200)
+        return Response("OK", status=200)
 
 
 @app.route('/')

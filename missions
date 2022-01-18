@@ -1,21 +1,19 @@
 
-Ofir: 10:00-11:00
-*show chart 10:00
+* move pages to be only after login
+* change to h5 at show results
 
-Vitaly: 10:00-11:00
-*check activate poll
-*check function of votes counters
+* tests
+* prepare for submitting (script, enviro.yml, package.json etc...)
+* look at piazza before submitting project.
 
-11:00-12:00 *tests
-12:00-13:00 *prepare for submitting (script, enviro.yml etc...)
 
 Misc:
 
 If there is more time:
 * add field isMultiple if the question is multiple answers or not ( in UI )
 * design more interesting pages
-
-
+* encrypt password, maybe in headers (Basic auth.. REST, jwt?)
+* is the presentation from the submission?
 
 done:
 * open git repository
@@ -52,3 +50,6 @@ done:
 * when sending a follow up poll, check if a user is active before sending him a poll.
 * implement CreateNewPoll page (and move create polls to ui)
 * fix bug of form not empty
+* show chart
+* check activate poll
+* check function of votes counters

@@ -68,8 +68,8 @@ if __name__ == "__main__":
     #
     flask_thread = FlaskThread()
     flask_thread.start()
-    bot_thread = TelegramThread()
-    bot_thread.start()
+    # bot_thread = TelegramThread()
+    # bot_thread.start()
 
 
 
