@@ -528,6 +528,11 @@ def newpoll():
 
 
     poll_name = request.headers.get('poll_name')
+    check_if_poll_exists = db.session.query(Polls).filter_by(poll_name=poll_name).first()
+    if check_if_poll_exists != None:
+        return Response("poll name:" + poll_name + "already exists , please choose different name", status=409)
+
+
     # print("poll_name", poll_name)
     # body = request.form
     body = request.headers.get('body')
@@ -601,13 +606,18 @@ def newpoll():
                 question_id = db.session.query(Questions).filter_by(poll_name=poll_name,
                                                                     question=dict['question']).first().question_id
                 poll_question_id += str(question_id) + ","
+                answers =""
 
 
         Polls.addPoll(poll_name,poll_question_id,expected_answers,db)
-    except:
+        print("are we here???")
+        return Response('OK', status=200)
+
+    except Exception as e:
+        print(e)
         return Response('Internal Error', status=500)
 
-    return Response('OK', status=200)
+
 
 
 
