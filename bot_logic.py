@@ -16,7 +16,7 @@ from telegram import (
     ReplyKeyboardMarkup,
     ReplyKeyboardRemove,
     Update,
-Bot)
+    Bot)
 from telegram.ext import (
     Updater,
     CommandHandler,
@@ -27,66 +27,54 @@ from telegram.ext import (
     CallbackContext,
 )
 import logging
-
-
-#####    PART 2 - NEW FUNCS    #######
-# from config import TELEGRAM_BOT_TOKEN
-
-
-
-
-
-def poll(update: Update, context: CallbackContext) -> None:
-    # print("unregister_cmd = ", update['message']['text'])
-    # print("poll update:" ,update)
-    # chat_id = update['message']['chat']['id']
-    # print(chat_id)
-    # len2 = len(update['message']['text'].split(' '))
-    # if len2 <= 1 or len2 > 2:
-    #     context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide Pollname.")
-    #     return
-    # poll_id_ = update['message']['text'].split(' ')[1]  # OUR POLL_ID
-    # description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id_).first().description
-    # # x = json.load(description)
-    # jsonData = json.loads(description)
-    # # print(jsonData)
-    # params = []  # params[0] = question , rest answers
-    # for key in jsonData:
-    #     params.append(jsonData[key])
-    # poll_question = params[0]
-    # answers = params[1:]
-    # message = context.bot.send_poll(
-    #     update.effective_chat.id,
-    #     poll_question,
-    #     answers,
-    #     is_anonymous=False,
-    #     allows_multiple_answers=True,
-    #     type=Poll.REGULAR,
-    #     is_closed= False,
-    #     disable_notification= False,
-    #     api_kwargs = {}  #  use either this or poll_id
-    # )
-    # # print(message)  # add telegram_id here
-    # telegram_id = message.poll.id
-    # app.db.session.query(app.Polls) \
-    #     .filter(app.Polls.poll_id == poll_id_) \
-    #     .update({app.Questions.telegram_question_id: telegram_id})
-    # app.db.session.commit()
-
-
-    json2 = {"question": "how much money do u  want to make?", "answer1": "1M", "answer2": "500", "answer3": "100B",
-             "filter_answer": "100B"}
-    json1 = {"question":"how much money do u make?" ,"answer1":"10k" , "answer2":"30k","answer3":"fuck off","filter_answer": "fuck off"}
-    # data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
-    headers_dict = {"Poll_name": "salary"}
-    data = {"question":"how much money do u make?" ,"answer1":"10k" , "answer2":"30k","answer3":"fuck off","filter_answer": "fuck off"}
-    url = 'http://127.0.0.1:5000/newpoll'
-    response = requests.post(url, data ,  headers=headers_dict)
-
-    # params = {"poll_id": 10}
-    # response = requests.get(url='http://127.0.0.1:5000/poll_results', params=params)
-
-
+# def poll(update: Update, context: CallbackContext) -> None:
+#     # print("unregister_cmd = ", update['message']['text'])
+#     # print("poll update:" ,update)
+#     # chat_id = update['message']['chat']['id']
+#     # print(chat_id)
+#     # len2 = len(update['message']['text'].split(' '))
+#     # if len2 <= 1 or len2 > 2:
+#     #     context.bot.send_message(chat_id=update.effective_chat.id, text="Please provide Pollname.")
+#     #     return
+#     # poll_id_ = update['message']['text'].split(' ')[1]  # OUR POLL_ID
+#     # description = app.db.session.query(app.Questions).filter_by(poll_id=poll_id_).first().description
+#     # # x = json.load(description)
+#     # jsonData = json.loads(description)
+#     # # print(jsonData)
+#     # params = []  # params[0] = question , rest answers
+#     # for key in jsonData:
+#     #     params.append(jsonData[key])
+#     # poll_question = params[0]
+#     # answers = params[1:]
+#     # message = context.bot.send_poll(
+#     #     update.effective_chat.id,
+#     #     poll_question,
+#     #     answers,
+#     #     is_anonymous=False,
+#     #     allows_multiple_answers=True,
+#     #     type=Poll.REGULAR,
+#     #     is_closed= False,
+#     #     disable_notification= False,
+#     #     api_kwargs = {}  #  use either this or poll_id
+#     # )
+#     # # print(message)  # add telegram_id here
+#     # telegram_id = message.poll.id
+#     # app.db.session.query(app.Polls) \
+#     #     .filter(app.Polls.poll_id == poll_id_) \
+#     #     .update({app.Questions.telegram_question_id: telegram_id})
+#     # app.db.session.commit()
+#
+#     json2 = {"question": "how much money do u  want to make?", "answer1": "1M", "answer2": "500", "answer3": "100B",
+#              "filter_answer": "100B"}
+#     json1 = {"question":"how much money do u make?" ,"answer1":"10k" , "answer2":"30k","answer3":"fuck off","filter_answer": "fuck off"}
+#     # data = {"poll_id": 10 , "answer1": 'technion' , "answer2":'cs' , "answer3": 'compi' , "answer4": '75'}
+#     headers_dict = {"Poll_name": "salary"}
+#     data = {"question":"how much money do u make?" ,"answer1":"10k" , "answer2":"30k","answer3":"fuck off","filter_answer": "fuck off"}
+#     url = 'http://127.0.0.1:5000/newpoll'
+#     response = requests.post(url, data ,  headers=headers_dict)
+#
+#     # params = {"poll_id": 10}
+#     # response = requests.get(url='http://127.0.0.1:5000/poll_results', params=params)
 
 
 def receive_poll_answer(update: Update, context: CallbackContext) -> None:
@@ -184,36 +172,13 @@ def receive_poll_answer(update: Update, context: CallbackContext) -> None:
                                          next_expected_answer, app.db)
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 def start_command(update: Update, context: CallbackContext):
     context.bot.send_message(chat_id=update.effective_chat.id, text="Hello")
     context.bot.send_message(chat_id=update.effective_chat.id, text="Welcome to smart polling" + "Please choose one of the options:" )
     context.bot.send_message(chat_id=update.effective_chat.id,
                              text="/register <user-name>-Register to start" +" answering polls via telegram\n" +"<user-name> in smart polling system\n\n"+
                              "\n" + "/remove <user-name>- To stop getting polls queries\n" + "<user-name> in smart polling system\n\n"
-                             + "\n" + "/poll <poll-name>- To initalize poll\n <poll-name> in smart polling system\n\n"
                                +"\n"  +  "/start- Use start anytime to see this menu again")
-
-
-#####                         #######
-
-
-
-
-
 
 
 def help_command(update: Update, context: CallbackContext):
